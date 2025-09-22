@@ -12,38 +12,16 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DB_URL")
-  directUrl = env("DIRECT_DB_URL")
-}
-
-// ENUMS
-enum Status {
-  PROCESSING
-  FAILED
-  SUCCESSED
+  directUrl = env("DB_URL")
 }
 
 // Tables
 
 model User {
   id        Int      @id @default(autoincrement())
-  fullName  String   @db.VarChar(40)
+  name  String   @db.VarChar(40)
   email     String   @unique @db.VarChar(255)
-  password  String   @db.VarChar(14)
+  picture  String? 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
-  // wallets   Wallet[]
 }
-
-
-
-// Demo model
-// model Wallet {
-//   id           Int           @id @default(autoincrement())
-//   userId       String
-//   publicKey    String        @unique
-//   privateKey   String        @unique
-//   user         User          @relation(fields: [userId], references: [uId], onDelete: Cascade, onUpdate: Cascade)
-//   createdAt    DateTime      @default(now())
-//   updatedAt    DateTime      @default(now()) @updatedAt
-//   transactions Transaction[]
-// }
