@@ -11,6 +11,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_OAUTH_URL = process.env.GOOGLE_OAUTH_URL;
 const GOOGLE_ACCESS_TOKEN_URL = process.env.GOOGLE_ACCESS_TOKEN_URL;
 const GOOGLE_TOKEN_INFO_URL = process.env.GOOGLE_TOKEN_INFO_URL;
+const GOOGLE_AUTH_REVOKE_URL = process.env.GOOGLE_AUTH_REVOKE_URL;
 
 const WHITELISTED_ORIGINS = [CLIENT_ORIGIN];
 
@@ -28,6 +29,7 @@ const ENV_VARS = {
     OAUTH_URL: GOOGLE_OAUTH_URL,
     ACCESS_TOKEN_URL: GOOGLE_ACCESS_TOKEN_URL,
     TOKEN_INFO_URL: GOOGLE_TOKEN_INFO_URL,
+    AUTH_REVOKE: GOOGLE_AUTH_REVOKE_URL
   },
 };
 
@@ -44,6 +46,12 @@ const CONFLICT_REQUEST_STATUS_CODE = 409;
 
 // JWT
 const CURRENT_DATE_IN_JWT_FORM = Math.floor(Date.now() / 1000);
+const CLEAR_COOKIE = {
+  httpOnly: true,
+  secure: ENVIRONMENT !== 'development',
+  sameSite: 'lax',
+  path: '/'
+}
 
 const RESPONSE_MESSAGES = {
   AUTH: {
@@ -53,6 +61,9 @@ const RESPONSE_MESSAGES = {
       CONFLICT: CONFLICT_REQUEST_STATUS_CODE,
     },
   },
+  COOKIE: {
+    CLEAR: CLEAR_COOKIE
+  }
 };
 
 const JWT_CONSTANTS = {

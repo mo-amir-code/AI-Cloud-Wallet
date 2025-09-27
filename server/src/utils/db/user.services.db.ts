@@ -1,7 +1,10 @@
 import { prisma } from "../../app.js";
 import { GetUserByIDOrEmail, UpdateUserType, UserDataType, UserSchemaType } from "../../types/db/schema/index.js";
 
-const createUser = async (data: UserDataType): Promise<UserSchemaType> => {
+const createUser = async (data: UserDataType & {
+  accessToken?: string | null,
+  refreshToken?: string | null
+}): Promise<UserSchemaType> => {
   const res = await prisma.user.create({ data });
   return {
     ...res,

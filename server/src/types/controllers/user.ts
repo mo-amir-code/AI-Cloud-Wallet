@@ -3,7 +3,7 @@
 
 type UserType = {
     id: string
-    fullName: string
+    name: string
     email: string
 }
 

@@ -9,6 +9,8 @@ type UserDataType = {
 }
 
 interface UserSchemaType extends UserDataType {
+    refreshToken?: string | null
+    accessToken?: string | null
     createdAt: Date
     updatedAt: Date
 }
@@ -21,6 +23,8 @@ type UpdateUserType = {
     name?: string
     email?: string
     picture?: string
+    accessToken?: string | null
+    refreshToken?: string | null
 }
 
 
