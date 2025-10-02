@@ -4,6 +4,9 @@ import { GOOGLE_CALLBACK_URL, GOOGLE_OAUTH_SCOPES } from "../config/google.js";
 import { apiHandler, ok } from "../middlewares/errorHandling/index.js";
 import { createUser, getUser, updateUser } from "../utils/db/user.services.db.js";
 import { JWTTokenSigner } from "../utils/jwt/index.js";
+import { DriveFileType } from "../types/services/drive/index.js";
+import { uploadJsonFile } from "../services/drive/index.js";
+import { getDrive } from "../services/drive/config.js";
 
 const authenticateWithGoogle = apiHandler(async (req, res, next) => {
   const state = "some_state";
@@ -90,6 +93,24 @@ const googleCallback = apiHandler(async (req, res, next) => {
       user = await updateUser(googleId, userData)
     } else {
       userData["id"] = googleId;
+
+      // JSON data of the user file
+      const fileData: DriveFileType = {
+        name: userData.name,
+        email: userData.email,
+        contacts: []
+      }
+
+      // Getting drive instance of the user
+      const drive = getDrive({
+        user: {
+          accessToken: access_token,
+          refreshToken: refresh_token
+        }
+      });
+
+      // Uploading json file into user's drive
+      userData["driveFileId"] = await uploadJsonFile(drive, fileData);
 
       user = await createUser(userData);
     }

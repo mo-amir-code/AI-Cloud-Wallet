@@ -9,7 +9,7 @@ const GOOGLE_OAUTH_SCOPES = [
 
   // Google Drive scopes
   "https://www.googleapis.com/auth/drive.file", // Create & access files created by your app
-  "https://www.googleapis.com/auth/drive.metadata.readonly", // View file metadata
+  "https://www.googleapis.com/auth/drive", 
   "https://www.googleapis.com/auth/drive.appdata", // Hidden app storage folder (good for app-only data)
 ];
 

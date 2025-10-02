@@ -18,14 +18,15 @@ datasource db {
 // Tables
 
 model User {
-  id        String      @id
-  name  String   @db.VarChar(40)
-  email     String   @unique @db.VarChar(255)
-  picture  String? 
+  id           String   @id
+  name         String   @db.VarChar(40)
+  email        String   @unique @db.VarChar(255)
+  driveFileId  String   @unique
+  picture      String?
   refreshToken String?
-  accessToken String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  accessToken  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
 
   @@map("user") // lowercase table name in the database
 }

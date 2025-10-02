@@ -65,7 +65,8 @@ const isUserAuthenticated = apiHandler(async (req, res, next) => {
   req.user = {
     id: user.id,
     email: user.email,
-    name: user.name
+    name: user.name,
+    driveFileId: user.driveFileId
   }
 
   next();

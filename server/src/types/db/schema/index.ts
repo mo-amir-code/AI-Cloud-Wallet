@@ -9,6 +9,7 @@ type UserDataType = {
 }
 
 interface UserSchemaType extends UserDataType {
+    driveFileId: string
     refreshToken?: string | null
     accessToken?: string | null
     createdAt: Date

@@ -71,3 +71,10 @@ const JWT_CONSTANTS = {
 };
 
 export { RESPONSE_MESSAGES, JWT_CONSTANTS };
+
+
+const DRIVE_FILE_NAME = "ai-cloud-wallet.json";
+
+export {
+  DRIVE_FILE_NAME
+}

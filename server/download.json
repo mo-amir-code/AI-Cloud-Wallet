@@ -1,0 +1,26 @@
+[
+    {
+        "id": 1234,
+        "name": "aZxT9pQm",
+        "age": 25,
+        "email": "kD3sX@example.com",
+        "is_active": true,
+        "score": 72.45
+    },
+    {
+        "id": 5678,
+        "name": "LmN0QwEr",
+        "age": 42,
+        "email": "tY8pK@example.com",
+        "is_active": false,
+        "score": 15.92
+    },
+    {
+        "id": 9012,
+        "name": "xCz8vBnL",
+        "age": 33,
+        "email": "hQ4zM@example.com",
+        "is_active": true,
+        "score": 99.01
+    }
+]
