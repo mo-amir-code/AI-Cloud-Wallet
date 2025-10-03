@@ -2,7 +2,7 @@ import { RESPONSE_MESSAGES } from "../config/constants.js";
 import { apiHandler, ErrorHandlerClass, ok } from "../middlewares/errorHandling/index.js";
 import { getDrive } from "../services/drive/config.js";
 import { getFileById, updateJsonFile } from "../services/drive/index.js";
-import { ContactType, NewContactType, UpdateContactType } from "../types/services/drive/index.js";
+import { NewContactType, UpdateContactType } from "../types/services/drive/index.js";
 import { getUser } from "../utils/db/user.services.db.js";
 import { v4 as uuid, validate as uuidvalidate } from "uuid"
 

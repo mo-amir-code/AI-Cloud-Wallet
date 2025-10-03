@@ -5,7 +5,7 @@ const addContactsZodSchema = z.object({
   body: z.object({
     contacts: z.array(z.object({
       name: z.string(ZOD_REQUIRED_ERR.replace("{field}", "name")),
-      address: z.string(ZOD_REQUIRED_ERR.replace("{field}", "public key")).length(42, { message: "Enter valid eth wallet public key" }),
+      address: z.string(ZOD_REQUIRED_ERR.replace("{field}", "public key")).length(44, { message: "Enter valid sol wallet public key" }),
     })).min(1, { message: "at least one contact is required" })
   })
 });
@@ -15,7 +15,7 @@ const updateContactZodSchema = z.object({
     contact: z.object({
       id: z.uuidv4("enter valid contact id"),
       name: z.string(ZOD_REQUIRED_ERR.replace("{field}", "name")).optional(),
-      address: z.string(ZOD_REQUIRED_ERR.replace("{field}", "public key")).length(42, { message: "Enter valid eth wallet public key" }).optional(),
+      address: z.string(ZOD_REQUIRED_ERR.replace("{field}", "public key")).length(44, { message: "Enter valid sol wallet public key" }).optional(),
     })
   })
 });

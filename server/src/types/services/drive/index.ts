@@ -1,5 +1,6 @@
 import { drive_v3 } from "googleapis"
 import { UserSchemaType } from "../../db/schema/index.js"
+import { SolanaWalletType } from "../../solana/index.js"
 
 type DriveAuthType = {
     accessToken: string
@@ -44,6 +45,7 @@ type ContactType = {
 type DriveFileType = {
     name: string
     email: string
+    wallet: SolanaWalletType
     contacts: ContactType[]
 }
 

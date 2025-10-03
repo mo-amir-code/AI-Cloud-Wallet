@@ -7,6 +7,7 @@ import { JWTTokenSigner } from "../utils/jwt/index.js";
 import { DriveFileType } from "../types/services/drive/index.js";
 import { uploadJsonFile } from "../services/drive/index.js";
 import { getDrive } from "../services/drive/config.js";
+import { createWallet } from "../utils/solana/index.js";
 
 const authenticateWithGoogle = apiHandler(async (req, res, next) => {
   const state = "some_state";
@@ -94,10 +95,13 @@ const googleCallback = apiHandler(async (req, res, next) => {
     } else {
       userData["id"] = googleId;
 
+      const wallet = createWallet();
+
       // JSON data of the user file
       const fileData: DriveFileType = {
         name: userData.name,
         email: userData.email,
+        wallet: wallet,
         contacts: []
       }
 
@@ -116,7 +120,7 @@ const googleCallback = apiHandler(async (req, res, next) => {
     }
 
     // Create JWT token for your application
-    const jwtToken = JWTTokenSigner(userObj, "1d");
+    const jwtToken = JWTTokenSigner(userObj, "1h");
 
     // Set HTTP-only cookie with the JWT token
     res.cookie('auth_token', jwtToken, COOKIE_OPTIONS);
