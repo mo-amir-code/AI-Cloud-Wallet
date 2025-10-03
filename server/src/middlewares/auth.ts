@@ -22,7 +22,6 @@ const isUserAuthenticated = apiHandler(async (req, res, next) => {
   const data = JWTTokenVerifier<JWTTokenVerifierType>(authToken);
 
   if (!data) {
-
     return next(new ErrorHandlerClass("Authorization token is not valid", RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED))
   }
 

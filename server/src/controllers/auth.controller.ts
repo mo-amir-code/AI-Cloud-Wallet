@@ -29,7 +29,7 @@ export const COOKIE_OPTIONS = {
   httpOnly: true,        // Prevents XSS attacks
   secure: ENV_VARS.ENV !== 'development', // HTTPS only in production
   sameSite: 'lax' as const,      // CSRF protection
-  maxAge: 1 * 24 * 60 * 60 * 1000, // 7 day
+  maxAge: 1 * 60 * 60 * 1000, // 1 hour
   path: '/'
 };
 
@@ -87,8 +87,6 @@ const googleCallback = apiHandler(async (req, res, next) => {
     }
 
     userData["accessToken"] = access_token;
-
-    // console.log("User data: ", userData)
 
     if (user) {
       user = await updateUser(googleId, userData)
