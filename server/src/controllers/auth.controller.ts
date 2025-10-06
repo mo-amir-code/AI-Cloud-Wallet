@@ -29,7 +29,7 @@ export const COOKIE_OPTIONS = {
   httpOnly: true,        // Prevents XSS attacks
   secure: ENV_VARS.ENV !== 'development', // HTTPS only in production
   sameSite: 'lax' as const,      // CSRF protection
-  maxAge: 1 * 60 * 60 * 1000, // 1 hour
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   path: '/'
 };
 
