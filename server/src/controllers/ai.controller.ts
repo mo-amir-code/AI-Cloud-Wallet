@@ -15,15 +15,17 @@ const processRequest = apiHandler(async (req, res, next) => {
         return new ErrorHandlerClass("Something went wrong!", RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST)
     }
 
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
     const drive = getDrive({ user });
     const driveFileData = await getFileById(drive, user.driveFileId);
 
-    await processUserRequest(driveFileData, query);
+    await processUserRequest(driveFileData, query, res);
 
-    return ok({
-        res,
-        message: "AI responded",
-    })
+    res.end();
 });
 
 

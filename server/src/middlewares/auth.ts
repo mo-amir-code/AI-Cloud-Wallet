@@ -8,7 +8,7 @@ import { COOKIE_OPTIONS } from "../controllers/auth.controller.js";
 import { CookieOptions } from "express";
 
 const isUserAuthenticated = apiHandler(async (req, res, next) => {
-  const authToken = req.cookies.auth_token;
+  const authToken = req.cookies.auth_token || req.headers.authorization?.split(" ")[1];
 
   if (!authToken) {
     return next(

@@ -7,7 +7,7 @@ type ChatType = {
     content: string
 }
 
-type AIStepType = "start" | "think" | "action" | "onserve" | "output"
+type AIStepType = "start" | "think" | "action" | "onserve" | "output" | "error";
 
 type AIJSONResponseType = {
     step: AIStepType,
