@@ -1,19 +1,69 @@
-import { Stack } from "expo-router";
+import { colors } from "@/theme/colors";
+import {
+  Foundation,
+  Ionicons,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 import React from "react";
-import { Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 const _layout = () => {
   return (
-    <SafeAreaView className="flex-1 bg-[#211832]">
-      <View className="m-2 flex-1">
-        <View>
-          <Text>Dashbord hai ye</Text>
-        </View>
-
-        <Stack screenOptions={{ headerShown: false }} />
-      </View>
-    </SafeAreaView>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.dark.secondary,
+          borderTopWidth: 0,
+          elevation: 0,
+          height: 50,
+          paddingBottom: 4,
+        },
+        tabBarActiveTintColor: colors.dark.accent,
+        tabBarInactiveTintColor: colors.dark.text,
+      }}
+    >
+      <Tabs.Screen
+        name="home"
+        options={{
+          tabBarLabel: "Home",
+          tabBarIcon: ({ color }) => (
+            <Foundation name="home" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="send"
+        options={{
+          tabBarLabel: "Send",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="send" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="contacts"
+        options={{
+          tabBarLabel: "Contacts",
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="contacts" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          tabBarLabel: "Profile",
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons
+              name="face-man-profile"
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+    </Tabs>
   );
 };
 

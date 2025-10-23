@@ -7,15 +7,15 @@ const index = () => {
   const router = useRouter();
 
   return (
-    <SafeAreaView className="flex-1 bg-[#211832]">
-      <ScrollView className="bg-[#211832] flex-1">
+    <SafeAreaView className={`flex-1 bg-primary`}>
+      <ScrollView className="bg-primary text-text flex-1">
         <View className="m-2">
-          <Text>index</Text>
+          <Text className="text-text" >index</Text>
           <TouchableOpacity onPress={() => router.push("/home")}>
-            <Text>Go to Dashboard Home</Text>
+            <Text className="text-text" >Go to Dashboard Home</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/settings")}>
-            <Text>Go to settings</Text>
+          <TouchableOpacity onPress={() => router.push("/send")}>
+            <Text className="text-text" >Go to Send</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

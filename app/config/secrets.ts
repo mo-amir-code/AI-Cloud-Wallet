@@ -1,0 +1,11 @@
+const { EXPO_PUBLIC_API_BASE_URL: API_BASE_URL, EXPO_PUBLIC_HELIUS_API_KEY: HELIUS_API_KEY } = process.env;
+
+
+const SECRETS = {
+    API_BASE_URL: API_BASE_URL || "http://localhost:8080",
+    HELIUS_API_KEY: HELIUS_API_KEY!
+}
+
+export {
+    SECRETS
+};
