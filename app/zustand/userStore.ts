@@ -1,38 +1,38 @@
 import { MyTokenDataType } from '@/types/tokens';
-import { UserStoreActionsType, UserStoreStatesType } from '@/types/zustand';
+import { ContactType, UserStoreActionsType, UserStoreStatesType } from '@/types/zustand';
 import { create } from 'zustand';
 
 
 export const useUserStore = create<UserStoreStatesType & UserStoreActionsType>((set) => ({
+    isUserLoggedIn: false,
     userInfo: null,
     totalBalance: 0,
-    tokens: {},
+    tokens: [],
+    contacts: [],
+    setUserAuthStatus: (status: boolean) => set({ isUserLoggedIn: status }),
     setUserInfo: (userInfo) => set({ userInfo }),
     clearUserInfo: () => set({ userInfo: null }),
     updateTotalBalance: (balance) => set({ totalBalance: balance }),
-    setTokens: (tokens: MyTokenDataType[]) =>
+    setTokens: (tokens: MyTokenDataType[]) => set(() => ({
+        tokens,
+    })),
+    updateTokenBalance: (mintAddress, amount) =>
         set((state) => {
-            const tokensRecord = tokens.reduce<Record<string, MyTokenDataType>>((acc, token) => {
-                acc[token.mintAddress] = token;
-                return acc;
-            }, {});
-            return { tokens: tokensRecord };
+            const updatedTokens = state.tokens.map((token) =>
+                token.mintAddress === mintAddress
+                    ? { ...token, balance: amount }
+                    : token
+            );
+            return { tokens: updatedTokens };
         }),
-    updateTokenBalance: (mintAddress, amount) => set((state) => {
-        {
-            const token = state.tokens[mintAddress];
-            if (token) {
-                return {
-                    tokens: {
-                        ...state.tokens,
-                        [mintAddress]: {
-                            ...token,
-                            balance: amount,
-                        },
-                    },
-                };
-            }
-            return state;
-        }
-    })
+    setContacts: (contacts: ContactType[]) => set({ contacts: contacts }),
+    updateContact: (id: string, updatedData: Partial<ContactType>) =>
+        set((state) => {
+            const updatedContacts = state.contacts.map((contact) =>
+                contact.id === id
+                    ? { ...contact, ...updatedData }
+                    : contact
+            );
+            return { contacts: updatedContacts };
+        }),
 }));

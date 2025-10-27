@@ -1,18 +1,21 @@
 import { Chart } from "@/components";
 import { MyToken, TrendingToken } from "@/components/tokens";
 import { SECRETS } from "@/config/secrets";
+import { useAPIClient } from "@/hooks/apiClient";
 import { colors } from "@/theme/colors";
 import { MyTokenDataType, PriceType, TokenMetadataType } from "@/types/tokens";
 import { UserInfoType } from "@/types/zustand";
-import { httpAxios, ROUTES } from "@/utils/axios";
+import { ROUTES } from "@/utils/axios";
 import { topTokens as topTokensData } from "@/utils/data";
 import { fetchTokenPriceData } from "@/utils/queries/solana";
 import { useUserStore } from "@/zustand/userStore";
 import { FontAwesome } from "@expo/vector-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  Animated,
   FlatList,
   Image,
   Pressable,
@@ -22,13 +25,39 @@ import {
   View,
 } from "react-native";
 
+const SIDEBAR_WIDTH = 220;
+
 const home = () => {
   const [topTokens, setTopTokens] = useState<(TokenMetadataType & PriceType)[]>(
     []
   );
-  const { userInfo, setUserInfo, setTokens, updateTotalBalance, totalBalance } =
-    useUserStore();
-  const [userTokens, setUserTokens] = useState<MyTokenDataType[]>([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const slideAnim = useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
+
+  const {
+    userInfo,
+    isUserLoggedIn,
+    setUserInfo,
+    tokens,
+    setTokens,
+    updateTotalBalance,
+    totalBalance,
+    setContacts,
+  } = useUserStore();
+  const { apiRequest } = useAPIClient();
+  const router = useRouter();
+
+  const toggleSidebar = () => {
+    const toValue = isSidebarOpen ? SIDEBAR_WIDTH : 0;
+
+    Animated.timing(slideAnim, {
+      toValue,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
   const fetchUserTokens = async () => {
     try {
@@ -66,31 +95,27 @@ const home = () => {
           decimals: tokenInfo?.decimals || -1,
         };
       });
+      // Add Solana token with current price from CoinGecko
+      const solPriceResponse = await axios.get(
+        "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd,inr"
+      );
 
-      if (response.data.nativeBalance > 0) {
-        // Add Solana token with current price from CoinGecko
-        const solPriceResponse = await axios.get(
-          "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd,inr"
-        );
-
-        const solanaData: MyTokenDataType = {
-          mintAddress: "So11111111111111111111111111111111111111112",
-          name: "Solana",
-          symbol: "SOL",
-          imageUri:
-            "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
-          amount: response.data.nativeBalance / Math.pow(10, 9),
-          decimals: 9,
-          programId: "",
-          pricePerToken: solPriceResponse.data.solana.usd,
-          currency: "USD",
-        };
-        tokensData.push(solanaData);
-      }
+      const solanaData: MyTokenDataType = {
+        mintAddress: "So11111111111111111111111111111111111111112",
+        name: "Solana",
+        symbol: "SOL",
+        imageUri:
+          "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
+        amount: response.data.nativeBalance / Math.pow(10, 9),
+        decimals: 9,
+        programId: "",
+        pricePerToken: solPriceResponse.data.solana.usd,
+        currency: "USD",
+      };
+      tokensData.push(solanaData);
 
       tokensData = tokensData.sort((a, b) => b.amount - a.amount);
 
-      setUserTokens(tokensData);
       setTokens(tokensData);
 
       // Calculate total balance
@@ -109,7 +134,9 @@ const home = () => {
 
   const handleUserInfoRequest = async () => {
     try {
-      const res = await httpAxios.get(ROUTES.USER.ROOT);
+      const res = await apiRequest(ROUTES.USER.ROOT, {
+        method: "get",
+      });
 
       const userData = res.data.data.user;
 
@@ -127,6 +154,23 @@ const home = () => {
       setUserInfo(userInfo);
     } catch (error) {
       console.log("Error fetching user info:", error);
+    }
+  };
+
+  const handleToGetContacts = async () => {
+    const res = await apiRequest(ROUTES.CONTACTS.ROOT, { method: "get" });
+    // console.log("REsponse ======>   ", res);
+
+    if (res?.data) {
+      const contacts = res.data.data.contacts.map((item: any) => {
+        const walletAddress = item.address;
+        delete item.address;
+        return {
+          ...item,
+          walletAddress,
+        };
+      });
+      setContacts(contacts);
     }
   };
 
@@ -160,16 +204,20 @@ const home = () => {
   };
 
   useEffect(() => {
-    if (userInfo === null) handleUserInfoRequest();
-  }, [userInfo]);
+    if (isUserLoggedIn) handleUserInfoRequest();
+  }, [isUserLoggedIn]);
 
   useEffect(() => {
     if (topTokens.length === 0) fetchTopTokensPrice();
     if (userInfo) fetchUserTokens();
   }, [topTokens, userInfo]);
 
+  useEffect(() => {
+    handleToGetContacts();
+  }, []);
+
   return (
-    <View className="flex-1" >
+    <View className="flex-1 relative">
       <ScrollView className="bg-primary flex-1 pt-2 flex flex-col overflow-y-scroll">
         {/* Header */}
         <View className="py-2 px-4 flex flex-row justify-between items-center">
@@ -183,7 +231,7 @@ const home = () => {
               {userInfo?.name || "MekYu"}
             </Text>
           </View>
-          <Pressable>
+          <Pressable onPress={toggleSidebar}>
             <Ionicons name="settings" size={24} color={colors.dark.text} />
           </Pressable>
         </View>
@@ -204,12 +252,18 @@ const home = () => {
             </View>
 
             <View className="flex flex-row items-center gap-2">
-              <TouchableOpacity className="bg-accent flex-1 rounded-2xl px-6 py-3">
+              <TouchableOpacity
+                onPress={() => router.push("/send")}
+                className="bg-accent flex-1 rounded-2xl px-6 py-3"
+              >
                 <Text className="font-semibold text-center text-primary">
                   Send
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity className="bg-secondary flex-1 rounded-2xl px-6 py-3">
+              <TouchableOpacity
+                onPress={() => handleToGetContacts()}
+                className="bg-secondary flex-1 rounded-2xl px-6 py-3"
+              >
                 <Text className="text-text font-medium text-center">
                   Receive
                 </Text>
@@ -241,16 +295,51 @@ const home = () => {
           </Text>
 
           <View className="flex flex-col gap-3">
-            {userTokens.map((token) => (
+            {tokens.map((token) => (
               <MyToken key={token.mintAddress} tokenInfo={token} />
             ))}
           </View>
         </View>
       </ScrollView>
+
       {/* Button To Activate AU */}
-      <TouchableOpacity className="absolute bottom-4 right-4 bg-accent w-16 h-16 flex items-center justify-center rounded-full">
+      <TouchableOpacity className="absolute bottom-16 right-4 bg-accent w-16 h-16 flex items-center justify-center rounded-full">
         <FontAwesome name="magic" size={24} color="black" />
       </TouchableOpacity>
+
+      {/* Overlay - only when sidebar is open */}
+      {isSidebarOpen && (
+        <TouchableOpacity
+          className="absolute top-0 left-0 right-0 bottom-0 bg-black/50"
+          activeOpacity={1}
+          onPress={toggleSidebar}
+        />
+      )}
+
+      {/* Settings Sidebar */}
+      <Animated.View
+        className="absolute right-0 top-0 bottom-0 bg-secondary shadow-2xl"
+        style={{
+          width: SIDEBAR_WIDTH,
+          transform: [{ translateX: slideAnim }],
+        }}
+      >
+        {/* Sidebar Header */}
+        <View className="flex-row justify-between items-center p-4 bg-accent border-b border-white/10">
+          <Text className="text-xl font-bold text-primary">Menu</Text>
+          <TouchableOpacity onPress={toggleSidebar}>
+            <Ionicons name="close" size={24} color={colors.dark.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Options Container */}
+        <View className="flex-1 pt-2"></View>
+
+        {/* Sidebar Footer */}
+        {/* <View className="p-4 border-t border-white/10 items-center">
+          <Text className="text-xs text-text/50">Version 1.0.0</Text>
+        </View> */}
+      </Animated.View>
     </View>
   );
 };

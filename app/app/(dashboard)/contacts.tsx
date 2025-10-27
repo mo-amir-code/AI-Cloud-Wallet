@@ -1,11 +1,14 @@
 import { Contact } from "@/components";
 import ContactModal from "@/components/contact/ContactModal";
+import { useUserStore } from "@/zustand/userStore";
 import { FontAwesome6 } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, Text, TouchableOpacity, View } from "react-native";
 
 const contacts = () => {
   const [visible, setVisible] = useState<"add" | "edit" | null>(null);
+  const [editContactEdit, setEditContactId] = useState<string | null>(null); // Editing contact id
+  const { contacts } = useUserStore();
 
   return (
     <View className="bg-primary flex-1 relative">
@@ -14,27 +17,23 @@ const contacts = () => {
         <Text className="text-text font-semibold text-xl">Contacts</Text>
       </View>
 
-      <ScrollView className="bg-primary flex-1 pt-2 px-2">
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-        <Contact setVisible={setVisible} />
-      </ScrollView>
+      {/* <ScrollView className="bg-primary flex-1 pt-2 px-2">{}</ScrollView> */}
+
+      {/* Tokens will be listed here */}
+      <FlatList
+        className="p-2"
+        showsVerticalScrollIndicator={false}
+        data={contacts}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <Contact
+            setVisible={setVisible}
+            data={item}
+            setEditId={setEditContactId}
+          />
+        )}
+        contentContainerStyle={{ gap: 16 }}
+      />
 
       {/* Button To Add Contact */}
       <TouchableOpacity
@@ -44,7 +43,12 @@ const contacts = () => {
         <FontAwesome6 name="add" size={30} color="black" />
       </TouchableOpacity>
 
-      <ContactModal visible={visible} setVisible={setVisible} />
+      <ContactModal
+        visible={visible}
+        editId={editContactEdit}
+        setVisible={setVisible}
+        setEditContact={setEditContactId}
+      />
     </View>
   );
 };
