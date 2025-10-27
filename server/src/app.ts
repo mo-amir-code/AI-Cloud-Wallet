@@ -17,6 +17,13 @@ app.get("/ping", (_req, res) => {
   res.json("pong");
 });
 
+// Trust proxy for ngrok
+app.set('trust proxy', true);
+// Middleware to get the correct host
+app.use((req, res, next) => {
+  req.actualHost = (req.headers['x-forwarded-host'] || req.headers.host) as string;
+  next();
+});
 
 app.use(cors(customizedCors))
 app.use(cookieParser());

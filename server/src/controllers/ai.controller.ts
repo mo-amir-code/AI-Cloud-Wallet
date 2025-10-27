@@ -20,7 +20,7 @@ const processRequest = apiHandler(async (req, res, next) => {
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
-    const drive = getDrive({ user });
+    const drive = getDrive({ user, req });
     const driveFileData = await getFileById(drive, user.driveFileId);
 
     await processUserRequest(driveFileData, query, res);

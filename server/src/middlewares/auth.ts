@@ -51,7 +51,7 @@ const isUserAuthenticated = apiHandler(async (req, res, next) => {
       picture: user.picture
     }
 
-    const customAccessToken = JWTTokenSigner(userData, "1d"); // Generating access token with custom data
+    const customAccessToken = JWTTokenSigner(userData, "1h", true); // Generating access token with custom data
 
     await updateUser(user.id, {
       accessToken: googleAccessToken

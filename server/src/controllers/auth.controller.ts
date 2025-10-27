@@ -1,16 +1,30 @@
 import { CookieOptions } from "express";
 import { ENV_VARS, RESPONSE_MESSAGES } from "../config/constants.js";
-import { GOOGLE_CALLBACK_URL, GOOGLE_OAUTH_SCOPES } from "../config/google.js";
-import { apiHandler, ok } from "../middlewares/errorHandling/index.js";
+import { getGoogleCallbackURL, GOOGLE_OAUTH_SCOPES } from "../config/google.js";
+import { apiHandler, ErrorHandlerClass, ok } from "../middlewares/errorHandling/index.js";
 import { createUser, getUser, updateUser } from "../utils/db/user.services.db.js";
-import { JWTTokenSigner } from "../utils/jwt/index.js";
+import { JWTTokenSigner, JWTTokenVerifier } from "../utils/jwt/index.js";
 import { DriveFileType } from "../types/services/drive/index.js";
 import { uploadJsonFile } from "../services/drive/index.js";
 import { getDrive } from "../services/drive/config.js";
 import { createWallet } from "../utils/solana/index.js";
+import { AuthWithGoogleBodyType, JWTTokenVerifierType } from "../types/controllers/v1/auth.js";
+import { regenerateAccessTokenWithRefreshToken } from "../utils/google/index.js";
 
 const authenticateWithGoogle = apiHandler(async (req, res, next) => {
-  const state = "some_state";
+  const { redirectUri, from } = req.body as AuthWithGoogleBodyType;
+
+  let state = "browser_state";
+
+  // console.log(redirectUri)
+
+  if (from === "mobile") {
+    state = Buffer.from(
+      JSON.stringify({ redirectUri })
+    ).toString('base64');
+  }
+
+  const GOOGLE_CALLBACK_URL = getGoogleCallbackURL(req);
 
   const scopes = GOOGLE_OAUTH_SCOPES.join(" ");
   const GOOGLE_OAUTH_CONSENT_SCREEN_URL = `${ENV_VARS.GOOGLE.OAUTH_URL}?client_id=${ENV_VARS.GOOGLE.CLIENT_ID}&redirect_uri=${GOOGLE_CALLBACK_URL}&access_type=offline&response_type=code&state=${state}&scope=${scopes}`;
@@ -34,14 +48,15 @@ export const COOKIE_OPTIONS = {
 };
 
 const googleCallback = apiHandler(async (req, res, next) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
+  const serverUrl = getGoogleCallbackURL(req);
 
   // Generating data to pass in body of exchange authorization code for access token
   const data = {
     code: code as any,
     client_id: ENV_VARS.GOOGLE.CLIENT_ID!,
     client_secret: ENV_VARS.GOOGLE.CLIENT_SECRET!,
-    redirect_uri: ENV_VARS.SERVER_ORIGIN! + "/api/v1/auth/google/callback",
+    redirect_uri: serverUrl,
     grant_type: "authorization_code",
   };
 
@@ -108,7 +123,8 @@ const googleCallback = apiHandler(async (req, res, next) => {
         user: {
           accessToken: access_token,
           refreshToken: refresh_token
-        }
+        },
+        req
       });
 
       // Uploading json file into user's drive
@@ -118,7 +134,32 @@ const googleCallback = apiHandler(async (req, res, next) => {
     }
 
     // Create JWT token for your application
-    const jwtToken = JWTTokenSigner(userObj, "1h");
+    const jwtToken = JWTTokenSigner(userObj, "1h", true);
+
+
+    if (state !== "browser_state") {
+      // Decode the state to get the app's redirect URI
+      let appRedirectUri: string;
+      try {
+        const decoded = JSON.parse(Buffer.from(state as string, 'base64').toString());
+        appRedirectUri = decoded.redirectUri;
+      } catch (error) {
+        console.error('Failed to decode state:', error);
+        return res.status(400).send('Invalid state parameter');
+      }
+
+      // Build the redirect URL back to the app
+      const finalRedirectUrl = `${appRedirectUri}?jwt=${encodeURIComponent(jwtToken as string)}`;
+
+      // console.log("FInal redirect URI: ", finalRedirectUrl)
+
+      // Redirect back to the mobile app
+      res.redirect(finalRedirectUrl);
+
+      return;
+    }
+
+
 
     // Set HTTP-only cookie with the JWT token
     res.cookie('auth_token', jwtToken, COOKIE_OPTIONS);
@@ -144,7 +185,7 @@ const googleCallback = apiHandler(async (req, res, next) => {
               }
             }, "*");
           }
-          
+
           // Close the popup
           window.close();
         </script>
@@ -175,6 +216,61 @@ const googleCallback = apiHandler(async (req, res, next) => {
       </html>
     `);
   }
+});
+
+const refreshToken = apiHandler(async (req, res, next) => {
+  const token = req.cookies.auth_token || req.headers.authorization?.split(" ")[1];
+
+  if (!token) {
+    return next(new ErrorHandlerClass("Authorization token is not exist",
+      RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED))
+  }
+
+  const payload = JWTTokenVerifier<JWTTokenVerifierType>(token);
+
+  if (payload === null) {
+    return next(new ErrorHandlerClass("Something went wrong!",
+      RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST))
+  }
+
+  const user = await getUser({ id: payload.id });
+
+  if (!user) {
+    return next(new ErrorHandlerClass("Something went wrong!",
+      RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST))
+  }
+
+  if (!user.refreshToken) {
+    res.clearCookie("auth_token", RESPONSE_MESSAGES.COOKIE.CLEAR as CookieOptions)
+    return next(new ErrorHandlerClass("Session expired", RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED))
+  }
+
+  const googleAccessToken = await regenerateAccessTokenWithRefreshToken(user.refreshToken);
+
+  if (!googleAccessToken) {
+    res.clearCookie("auth_token", RESPONSE_MESSAGES.COOKIE.CLEAR as CookieOptions)
+    return next(new ErrorHandlerClass("Session expired", RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED))
+  }
+
+  const userData = {
+    name: user.name,
+    email: user.email,
+    picture: user.picture
+  }
+
+  const jwtToken = JWTTokenSigner(userData, "1h", true);
+
+  await updateUser(user.id, {
+    accessToken: googleAccessToken
+  });
+
+  return ok({
+    res,
+    message: "token has been refreshed",
+    data: {
+      token: jwtToken
+    }
+  })
 });
 
 const logoutUser = apiHandler(async (req, res, next) => {
@@ -271,4 +367,27 @@ const revokeGoogleAccess = apiHandler(async (req, res, next) => {
   }
 });
 
-export { authenticateWithGoogle, googleCallback, revokeGoogleAccess, logoutUser };
+const checkIsUserAuthenticated = apiHandler(async (req, res, next) => {
+  const token = req.cookies.auth_token || req.headers.authorization?.split(" ")[1];
+
+  // console.log("Token:  ", token)
+  // console.log("Headers: ", req.headers)
+
+  if (!token) {
+    return next(new ErrorHandlerClass("Authorization token is not exist",
+      RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED))
+  }
+
+  const payload = JWTTokenVerifier<JWTTokenVerifierType>(token);
+
+  if (payload === null) {
+    return next(new ErrorHandlerClass("Something went wrong", RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED));
+  }
+
+  return ok({
+    res,
+    message: "token has been refreshed"
+  })
+});
+
+export { authenticateWithGoogle, googleCallback, refreshToken, revokeGoogleAccess, logoutUser, checkIsUserAuthenticated };

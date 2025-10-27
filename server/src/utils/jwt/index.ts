@@ -41,13 +41,29 @@ const JWTTokenVerifier = <T>(token: string): T | null => {
   }
 };
 
-const JWTTokenSigner = <T extends string | object>(data: T, expiry: JWTExpiryType): string | null => {
+const JWTTokenSigner = <T extends string | object>(data: T, expiry: JWTExpiryType, willReduce5Mint?: boolean): string | null => {
+  const ONE_MINUTE_IN_SECS = 60;
+  let expiryTime;
+
+  switch (expiry) {
+    case "15d": expiryTime = ONE_MINUTE_IN_SECS * 60 * 15; break;
+    case "7d": expiryTime = ONE_MINUTE_IN_SECS * 60 * 7; break;
+    case "3d": expiryTime = ONE_MINUTE_IN_SECS * 60 * 3; break;
+    case "1d": expiryTime = ONE_MINUTE_IN_SECS * 60 * 1; break;
+    case "1h": expiryTime = ONE_MINUTE_IN_SECS * 60; break;
+    default: expiryTime = ONE_MINUTE_IN_SECS; break;
+  }
+
+  if (willReduce5Mint) {
+    expiryTime -= ONE_MINUTE_IN_SECS * 5;
+  }
+
   try {
     const token = jwt.sign(
       data,
       ENV_VARS.JWT_SECRET as string,
       {
-        expiresIn: expiry
+        expiresIn: expiryTime
       }
     );
 

@@ -14,7 +14,7 @@ const getUserInfo = apiHandler(async (req, res, next) => {
         return new ErrorHandlerClass("Something went wrong!", RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST)
     }
 
-    const drive = getDrive({ user });
+    const drive = getDrive({ user, req });
     const fileData = await getFileById(drive, user.driveFileId);
 
     return ok({

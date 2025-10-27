@@ -11,4 +11,11 @@ const registerUserZodSchema = z.object({
   }),
 });
 
-export { registerUserZodSchema };
+const authWithGoogleZodSchema = z.object({
+  body: z.object({
+    redirectUri: z.string().optional(),
+    from: z.enum(["mobile", "browser"]),
+  }),
+});
+
+export { registerUserZodSchema, authWithGoogleZodSchema };

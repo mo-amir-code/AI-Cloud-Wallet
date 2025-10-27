@@ -6,6 +6,7 @@ declare global {
   namespace Express {
     interface Request {
       user: UserType; // Add the 'user' property of any type
+      actualHost: string
     }
   }
 }

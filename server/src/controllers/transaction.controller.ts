@@ -17,7 +17,7 @@ const makeTransaction = apiHandler(async (req, res, next) => {
 
     const { toAddress, tokenMint, amount, tokenProgramId, decimals } = req.body;
 
-    const drive = getDrive({ user });
+    const drive = getDrive({ user, req });
     const fileData = await getFileById(drive, user.driveFileId);
 
 

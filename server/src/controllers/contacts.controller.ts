@@ -16,7 +16,7 @@ const getContacts = apiHandler(async (req, res, next) => {
         return new ErrorHandlerClass("Something went wrong!", RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST)
     }
 
-    const drive = getDrive({ user });
+    const drive = getDrive({ user, req });
     const fileData = await getFileById(drive, user.driveFileId);
 
     return ok({
@@ -38,7 +38,7 @@ const addNewContact = apiHandler(async (req, res, next) => {
         return new ErrorHandlerClass("Something went wrong!", RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST)
     }
 
-    const drive = getDrive({ user });
+    const drive = getDrive({ user, req });
 
     const fileData = await getFileById(drive, user.driveFileId);
 
@@ -74,7 +74,7 @@ const updateContact = apiHandler(async (req, res, next) => {
         return new ErrorHandlerClass("enter valid contact id!", RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST)
     }
 
-    const drive = getDrive({ user });
+    const drive = getDrive({ user, req });
 
     let fileData = await getFileById(drive, user.driveFileId);
 
@@ -109,7 +109,7 @@ const deleteContact = apiHandler(async (req, res, next) => {
         return new ErrorHandlerClass("enter valid contact id!", RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST)
     }
 
-    const drive = getDrive({ user });
+    const drive = getDrive({ user, req });
 
     let fileData = await getFileById(drive, user.driveFileId);
 
@@ -132,7 +132,7 @@ const deleteAllContacts = apiHandler(async (req, res, next) => {
         return new ErrorHandlerClass("Something went wrong!", RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST)
     }
 
-    const drive = getDrive({ user });
+    const drive = getDrive({ user, req });
 
     let fileData = await getFileById(drive, user.driveFileId);
 

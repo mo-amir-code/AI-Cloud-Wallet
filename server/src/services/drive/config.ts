@@ -1,14 +1,14 @@
 import { drive_v3, google } from "googleapis"
 import { ENV_VARS } from "../../config/constants.js";
-import { GOOGLE_CALLBACK_URL } from "../../config/google.js";
 import { GetDriveType } from "../../types/services/drive/index.js";
+import { getGoogleCallbackURL } from "../../config/google.js";
 
-const getDrive = ({ user }: GetDriveType): drive_v3.Drive => {
+const getDrive = ({ user, req }: GetDriveType): drive_v3.Drive => {
     // Initialize oauth2 client
     const oauth2Client = new google.auth.OAuth2(
         ENV_VARS.GOOGLE.CLIENT_ID,
         ENV_VARS.GOOGLE.CLIENT_SECRET,
-        GOOGLE_CALLBACK_URL
+        getGoogleCallbackURL(req)
     );
 
     // Set credentials

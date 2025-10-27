@@ -1,6 +1,7 @@
 import { drive_v3 } from "googleapis"
 import { UserSchemaType } from "../../db/schema/index.js"
 import { SolanaWalletType } from "../../solana/index.js"
+import { Request } from "express"
 
 type DriveAuthType = {
     accessToken: string
@@ -9,6 +10,7 @@ type DriveAuthType = {
 
 type GetDriveType = {
     user: UserSchemaType | DriveAuthType
+    req: Request
 }
 
 type GetDriveFoldersIdsType = {
