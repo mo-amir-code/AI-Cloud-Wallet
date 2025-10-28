@@ -10,6 +10,7 @@ import { getDrive } from "../services/drive/config.js";
 import { createWallet } from "../utils/solana/index.js";
 import { AuthWithGoogleBodyType, JWTTokenVerifierType } from "../types/controllers/v1/auth.js";
 import { regenerateAccessTokenWithRefreshToken } from "../utils/google/index.js";
+import { createSettings } from "../utils/db/settings.services.db.js";
 
 const authenticateWithGoogle = apiHandler(async (req, res, next) => {
   const { redirectUri, from } = req.body as AuthWithGoogleBodyType;
@@ -131,6 +132,7 @@ const googleCallback = apiHandler(async (req, res, next) => {
       userData["driveFileId"] = await uploadJsonFile(drive, fileData);
 
       user = await createUser(userData);
+      await createSettings({ userId: user.id, mode: "mainnet" });
     }
 
     // Create JWT token for your application
@@ -368,25 +370,30 @@ const revokeGoogleAccess = apiHandler(async (req, res, next) => {
 });
 
 const checkIsUserAuthenticated = apiHandler(async (req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+
   const token = req.cookies.auth_token || req.headers.authorization?.split(" ")[1];
 
+  // console.log("COOKIES: ", req.cookies)
   // console.log("Token:  ", token)
   // console.log("Headers: ", req.headers)
 
   if (!token) {
     return next(new ErrorHandlerClass("Authorization token is not exist",
-      RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED))
+      RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST))
   }
 
   const payload = JWTTokenVerifier<JWTTokenVerifierType>(token);
 
   if (payload === null) {
-    return next(new ErrorHandlerClass("Something went wrong", RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED));
+    return next(new ErrorHandlerClass("Something went wrong", RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST));
   }
 
   return ok({
     res,
-    message: "token has been refreshed"
+    message: "user is authenticated"
   })
 });
 

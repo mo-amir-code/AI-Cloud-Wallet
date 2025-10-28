@@ -32,6 +32,10 @@ const isUserAuthenticated = apiHandler(async (req, res, next) => {
     return next(new ErrorHandlerClass("Something went wrong", RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED))
   }
 
+  if (data.isExpired && !req.headers["x-mobile"]) {
+    return next(new ErrorHandlerClass("Unauthorized request", RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED))
+  }
+
   if (data.isExpired) {
     if (!user.refreshToken) {
       res.clearCookie("auth_token", RESPONSE_MESSAGES.COOKIE.CLEAR as CookieOptions)
@@ -59,6 +63,7 @@ const isUserAuthenticated = apiHandler(async (req, res, next) => {
 
 
     res.cookie('auth_token', customAccessToken, COOKIE_OPTIONS);
+
   }
 
   req.user = {

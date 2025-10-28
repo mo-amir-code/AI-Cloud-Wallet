@@ -26,9 +26,16 @@ const processUserRequest = async (driveFileData: DriveFileType, query: string, r
 
     const instructions = [];
 
-    
+
     while (true) {
-        const response = await queryToAI(chatHistory);
+        const response = await queryToAI(chatHistory, 0);
+
+        if (!response) {
+            sendUpdate("AI server is not responding...");
+            break;
+        }
+
+        console.log(response, "\n\n\n")
 
         if (!response) {
             console.log("Stopped!");
@@ -96,6 +103,8 @@ const processUserRequest = async (driveFileData: DriveFileType, query: string, r
         })
     }
 
+    console.log("Exited from the loop..........")
+
     // const url = `https://lite-api.jup.ag/price/v3?ids=So11111111111111111111111111111111111111112`;
     // const response = await axios.get(url);
     // console.log(response.data);
@@ -106,7 +115,7 @@ const processUserRequest = async (driveFileData: DriveFileType, query: string, r
 };
 
 
-const queryToAI = async (chatHistory: ChatType[]): Promise<AIJSONResponseType | null> => {
+const queryToAI = async (chatHistory: ChatType[], retries: number): Promise<AIJSONResponseType | null> => {
     const textToSend = chatHistory
         .map(msg => `[${msg.role}] ${msg.content}`)
         .join("\n");
@@ -153,8 +162,13 @@ const queryToAI = async (chatHistory: ChatType[]): Promise<AIJSONResponseType | 
 
         return output;
     } catch (error) {
-        console.log("Error occurred while querying to AI: ");
-        return queryToAI(chatHistory)
+        if (retries < 10) {
+            console.log(`Retrying... attempt ${retries + 1}`);
+            await new Promise(res => setTimeout(res, 2000)); // wait 2s before retry
+            return queryToAI(chatHistory, retries + 1);
+        }
+
+        return null;
     }
 }
 

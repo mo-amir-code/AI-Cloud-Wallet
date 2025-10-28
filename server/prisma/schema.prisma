@@ -18,15 +18,33 @@ datasource db {
 // Tables
 
 model User {
-  id           String   @id
-  name         String   @db.VarChar(40)
-  email        String   @unique @db.VarChar(255)
-  driveFileId  String   @unique
+  id           String    @id
+  name         String    @db.VarChar(40)
+  email        String    @unique @db.VarChar(255)
+  driveFileId  String    @unique
   picture      String?
   refreshToken String?
   accessToken  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @default(now()) @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+  Settings     Settings?
 
   @@map("user") // lowercase table name in the database
+}
+
+enum NetworkMode {
+  devnet
+  mainnet
+}
+
+model Settings {
+  id     String      @id @default(cuid())
+  mode   NetworkMode @default(mainnet) // "devnet" or "mainnet"
+  userId String      @unique
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("settings") // lowercase table name
 }

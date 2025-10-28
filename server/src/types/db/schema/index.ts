@@ -28,10 +28,20 @@ type UpdateUserType = {
     refreshToken?: string | null
 }
 
+type NetworkModeType = "devnet" | "mainnet";
+
+type SettingsSchemaType = {
+    id: string
+    userId: string
+    mode: NetworkModeType
+}
+
 
 export type {
     UserSchemaType,
     UserDataType,
     GetUserByIDOrEmail,
-    UpdateUserType
+    UpdateUserType,
+    NetworkModeType,
+    SettingsSchemaType
 }

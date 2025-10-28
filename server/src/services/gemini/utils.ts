@@ -82,7 +82,7 @@ const createInstruction = async ({ fromSecretKey, toAddress, amount, decimals, m
             fromTokenAccount.address,
             toTokenAccount.address,
             fromWallet.publicKey,
-            amount * Math.pow(10, decimals),
+            BigInt(Math.round(amount * Math.pow(10, decimals))),
             [],
             new PublicKey(tokenProgramId)
         );
@@ -90,7 +90,7 @@ const createInstruction = async ({ fromSecretKey, toAddress, amount, decimals, m
         instruction = SystemProgram.transfer({
             fromPubkey: fromWallet.publicKey,
             toPubkey: toPublicKey,
-            lamports: amount * Math.pow(10, decimals)
+            lamports: BigInt(Math.round(amount * Math.pow(10, decimals)))
         })
     }
 
