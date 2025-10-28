@@ -1,13 +1,23 @@
 import { colors } from "@/theme/colors";
+import { useUserStore } from "@/zustand/userStore";
 import {
   Foundation,
   Ionicons,
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
-import React from "react";
+import { Tabs, useRouter } from "expo-router";
+import React, { useEffect } from "react";
 
 const _layout = () => {
+  const { isUserLoggedIn } = useUserStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoggedIn) {
+      router.replace("/");
+    }
+  }, [isUserLoggedIn]);
+
   return (
     <Tabs
       screenOptions={{

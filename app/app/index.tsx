@@ -90,7 +90,9 @@ const index = () => {
 
   const checkIsUserAuthenticated = async () => {
     setLoading(true);
+    // console.log("TOKEN BEFORE IS-USER-AUTH: ", await apiClient.getToken())
     const response = await isUserAuthenticated();
+    // console.log("RESPONSE: ", response)
     if (response) {
       setUserAuthStatus(true);
     }
@@ -99,8 +101,10 @@ const index = () => {
 
   useEffect(() => {
     if (isUserLoggedIn) {
+      console.log("User is logged IN")
       router.replace("/home");
     } else {
+      console.log("User is logged OUT")
       checkIsUserAuthenticated();
     }
   }, [isUserLoggedIn]);

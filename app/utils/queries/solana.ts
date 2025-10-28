@@ -1,10 +1,11 @@
 import { SECRETS } from "@/config/secrets";
 import { MyTokenDataType } from "@/types/tokens";
+import { NetworkType } from "@/types/zustand";
 
 
-const fetchTokenPriceData = async (mintAddresses: [string]): Promise<MyTokenDataType[]> => {
-
-    const response = await fetch("https://mainnet.helius-rpc.com/?api-key=" + SECRETS.HELIUS_API_KEY, {
+const fetchTokenPriceData = async (mintAddresses: [string], mode: NetworkType): Promise<MyTokenDataType[]> => {
+    console.log("MODE: ", mode)
+    const response = await fetch(`https://${mode}.helius-rpc.com/?api-key=` + SECRETS.HELIUS_API_KEY, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

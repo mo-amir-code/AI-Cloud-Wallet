@@ -223,7 +223,9 @@ const send = () => {
               data={contacts}
               labelField="name"
               valueField="id"
-              placeholder="Select Contact..."
+              placeholder={
+                contacts.length ? "Select Contact..." : "No Contacts!"
+              }
               containerStyle={{
                 backgroundColor: colors.dark.secondary,
                 borderRadius: 12,

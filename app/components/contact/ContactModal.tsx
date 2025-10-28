@@ -20,8 +20,9 @@ const ContactModal = ({
   setEditContact: Function;
 }) => {
   const [contact, setContact] = useState<Partial<ContactType> | null>(null);
-  const { contacts } = useUserStore();
+  const { contacts, setContacts } = useUserStore();
   const { apiRequest, isFetching } = useAPIClient();
+  const { apiRequest: contactApiRequest } = useAPIClient();
   const { setToast } = useAppStore();
 
   if (visible === "edit" && editId === null) {
@@ -49,6 +50,25 @@ const ContactModal = ({
 
     c.walletAddress = address;
     setContact(c);
+  };
+
+  const handleToGetContacts = async () => {
+    const res = await contactApiRequest(ROUTES.CONTACTS.ROOT, {
+      method: "get",
+    });
+    // console.log("REsponse ======>   ", res);
+
+    if (res?.data) {
+      const contacts = res.data.data.contacts.map((item: any) => {
+        const walletAddress = item.address;
+        delete item.address;
+        return {
+          ...item,
+          walletAddress,
+        };
+      });
+      setContacts(contacts);
+    }
   };
 
   const handleSubmit = async () => {
@@ -109,6 +129,7 @@ const ContactModal = ({
           content: "Your new contacted added saved successfully",
           status: "success",
         });
+        handleToGetContacts();
       }
       handleClose();
     } catch (err) {

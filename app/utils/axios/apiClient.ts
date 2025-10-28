@@ -21,7 +21,7 @@ class ApiClient {
     /**
      * Get the stored auth token
      */
-    private async getToken(): Promise<string | null> {
+    public async getToken(): Promise<string | null> {
         try {
             const token = await SecureStore.getItemAsync("auth_token");
             // console.log("Token:::::::::::: ", token)
@@ -37,6 +37,7 @@ class ApiClient {
      */
     private async setToken(token: string): Promise<void> {
         try {
+            // console.log("SET TOKEN CALLED: ", token)
             await SecureStore.setItemAsync("auth_token", token);
         } catch (error) {
             console.error("Error storing token:", error);
@@ -58,6 +59,7 @@ class ApiClient {
      * Refresh the access token
      */
     private async refreshToken(): Promise<string | null> {
+        // console.log("REFRESH TOKEN METHOD IS CALLED")
         // If already refreshing, return the existing promise
         if (this.isRefreshing && this.refreshPromise) {
             return this.refreshPromise;
@@ -101,10 +103,16 @@ class ApiClient {
     ): Promise<ApiResponseType> {
         const { method, requiresAuth, headers = undefined, body = undefined } = options;
 
+
+
         // console.log("Requires Auth: ====?>    ", requiresAuth)
 
         // Get token if authentication is required
         let token = requiresAuth ? await this.getToken() : null;
+
+        // if (endpoint.startsWith("/auth")) {
+        //     console.log("TOKEN: ", token)
+        // }
 
         // Setup headers
         let requestHeaders: Record<string, string> = {
@@ -117,6 +125,11 @@ class ApiClient {
                 ...requestHeaders,
                 "authorization": `Bearer ${token}`
             };
+        }
+
+        requestHeaders = {
+            ...requestHeaders,
+            "x-mobile": "true"
         }
 
         // console.log("Request Headers: ", requestHeaders)
@@ -133,6 +146,9 @@ class ApiClient {
                 data: body,
                 headers: requestHeaders
             });
+
+            // console.log("ENDPOINT: ", endpoint)
+            // console.log("API RESPONSE: ", response.data)
 
             response = {
                 data: (response as any).data

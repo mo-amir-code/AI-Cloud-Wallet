@@ -21,6 +21,8 @@ const isUserAuthenticated = async () => {
         requiresAuth: true,
     });
 
+    // console.log("RESPONSE-0: ", res)
+
     if (res.error) return false;
     return true;
 }

@@ -1,4 +1,6 @@
 import { Chart } from "@/components";
+import { AIAssistant } from "@/components/ai";
+import { NetworkToggle } from "@/components/settings";
 import { MyToken, TrendingToken } from "@/components/tokens";
 import { SECRETS } from "@/config/secrets";
 import { useAPIClient } from "@/hooks/apiClient";
@@ -6,10 +8,11 @@ import { colors } from "@/theme/colors";
 import { MyTokenDataType, PriceType, TokenMetadataType } from "@/types/tokens";
 import { UserInfoType } from "@/types/zustand";
 import { ROUTES } from "@/utils/axios";
+import { apiClient } from "@/utils/axios/apiClient";
 import { topTokens as topTokensData } from "@/utils/data";
 import { fetchTokenPriceData } from "@/utils/queries/solana";
 import { useUserStore } from "@/zustand/userStore";
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import axios from "axios";
 import { useRouter } from "expo-router";
@@ -24,6 +27,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 
 const SIDEBAR_WIDTH = 220;
 
@@ -33,16 +37,20 @@ const home = () => {
   );
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
+  const [isAIAssitantOpen, setIsAIAssitantOpen] = useState<boolean>(false);
 
   const {
     userInfo,
     isUserLoggedIn,
     setUserInfo,
     tokens,
+    settings,
     setTokens,
     updateTotalBalance,
     totalBalance,
     setContacts,
+    setSettings,
+    setUserAuthStatus,
   } = useUserStore();
   const { apiRequest } = useAPIClient();
   const router = useRouter();
@@ -64,11 +72,16 @@ const home = () => {
       if (!userInfo?.wallet.publicKey) return;
 
       // Get token balances
+      const baseUrl =
+        settings?.mode === "mainnet"
+          ? "api.helius.xyz"
+          : "api-devnet.helius.xyz";
+      console.log("BASE URL: ", baseUrl);
       const response = await axios.get(
-        `https://api.helius.xyz/v0/addresses/${userInfo.wallet.publicKey}/balances?api-key=${SECRETS.HELIUS_API_KEY}`
+        `https://${baseUrl}/v0/addresses/${userInfo.wallet.publicKey}/balances?api-key=${SECRETS.HELIUS_API_KEY}`
       );
 
-      // console.log("User Tokens Response:", response.data);
+      console.log("TOKEN DATA: ", response.data.tokens);
 
       const tokensInfo = response.data.tokens.map((token: any) => {
         return {
@@ -78,9 +91,17 @@ const home = () => {
         };
       });
 
+      console.log("TOKENS INFO:   ", tokensInfo);
+
       const tokensMintAddresses = tokensInfo.map((token: any) => token.mint);
 
-      let tokensData = await fetchTokenPriceData(tokensMintAddresses);
+      let tokensData = await fetchTokenPriceData(
+        tokensMintAddresses,
+        settings?.mode ?? "mainnet"
+      );
+
+      console.log("TOKENS PRICE DATA: ", tokensData);
+
       tokensData = tokensData.map((token: MyTokenDataType) => {
         const tokenInfo = tokensInfo.find(
           (t: any) => t.mint === token.mintAddress
@@ -100,6 +121,8 @@ const home = () => {
         "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd,inr"
       );
 
+      // console.log("Sol Price Response: ", response.data.nativeBalance)
+
       const solanaData: MyTokenDataType = {
         mintAddress: "So11111111111111111111111111111111111111112",
         name: "Solana",
@@ -112,9 +135,9 @@ const home = () => {
         pricePerToken: solPriceResponse.data.solana.usd,
         currency: "USD",
       };
-      tokensData.push(solanaData);
 
       tokensData = tokensData.sort((a, b) => b.amount - a.amount);
+      tokensData = [solanaData, ...tokensData];
 
       setTokens(tokensData);
 
@@ -138,7 +161,8 @@ const home = () => {
         method: "get",
       });
 
-      const userData = res.data.data.user;
+      const data = res.data.data;
+      const userData = data.user;
 
       const userInfo: UserInfoType = {
         id: userData?.id,
@@ -152,6 +176,7 @@ const home = () => {
       };
 
       setUserInfo(userInfo);
+      setSettings(data.settings);
     } catch (error) {
       console.log("Error fetching user info:", error);
     }
@@ -203,6 +228,13 @@ const home = () => {
     }
   };
 
+  const handleLogout = async () => {
+    await apiClient.clearAuth();
+    // console.log("TOKEN: ", await apiClient.getToken())
+    setUserAuthStatus(false);
+    setUserInfo(null);
+  };
+
   useEffect(() => {
     if (isUserLoggedIn) handleUserInfoRequest();
   }, [isUserLoggedIn]);
@@ -210,7 +242,7 @@ const home = () => {
   useEffect(() => {
     if (topTokens.length === 0) fetchTopTokensPrice();
     if (userInfo) fetchUserTokens();
-  }, [topTokens, userInfo]);
+  }, [topTokens, userInfo, settings]);
 
   useEffect(() => {
     handleToGetContacts();
@@ -247,7 +279,7 @@ const home = () => {
             <View className="flex">
               <Text className="text-text/60 text-sm">Total Balance</Text>
               <Text className="text-text text-4xl font-semibold mb-2">
-                ${totalBalance}
+                ${parseFloat(totalBalance.toFixed(4))}
               </Text>
             </View>
 
@@ -261,7 +293,7 @@ const home = () => {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => handleToGetContacts()}
+                onPress={() => toggleSidebar()}
                 className="bg-secondary flex-1 rounded-2xl px-6 py-3"
               >
                 <Text className="text-text font-medium text-center">
@@ -302,8 +334,17 @@ const home = () => {
         </View>
       </ScrollView>
 
-      {/* Button To Activate AU */}
-      <TouchableOpacity className="absolute bottom-16 right-4 bg-accent w-16 h-16 flex items-center justify-center rounded-full">
+      {/* AI MODAL */}
+      <AIAssistant
+        visible={isAIAssitantOpen}
+        onClose={() => setIsAIAssitantOpen(false)}
+      />
+
+      {/* Button To Activate AI */}
+      <TouchableOpacity
+        onPress={() => setIsAIAssitantOpen(true)}
+        className="absolute bottom-16 right-4 bg-accent w-16 h-16 flex items-center justify-center rounded-full"
+      >
         <FontAwesome name="magic" size={24} color="black" />
       </TouchableOpacity>
 
@@ -326,19 +367,53 @@ const home = () => {
       >
         {/* Sidebar Header */}
         <View className="flex-row justify-between items-center p-4 bg-accent border-b border-white/10">
-          <Text className="text-xl font-bold text-primary">Menu</Text>
+          <Text className="text-xl font-bold text-primary">Settings</Text>
           <TouchableOpacity onPress={toggleSidebar}>
             <Ionicons name="close" size={24} color={colors.dark.primary} />
           </TouchableOpacity>
         </View>
 
         {/* Options Container */}
-        <View className="flex-1 pt-2"></View>
+        <View className="flex-1 pt-2 flex justify-between">
+          <View>
+            {/* QR Code Section */}
+            <View className="items-center mt-6">
+              <Text className="text-text text-base font-medium mb-3">
+                Receive Here 👇
+              </Text>
+              <View className="bg-zinc-100 dark:bg-zinc-900 p-4 rounded-2xl">
+                <QRCode
+                  value={userInfo?.wallet.publicKey}
+                  size={150}
+                  color={colors.dark.text}
+                  backgroundColor="transparent"
+                />
+              </View>
+              <Text className="text-xs text-zinc-500 mt-3 text-center px-4">
+                Scan this QR to receive tokens to your public address
+              </Text>
+            </View>
+
+            <View className="px-2 mt-4">
+              <Text className="font-medium text-text pl-2 mb-1">Network</Text>
+              <NetworkToggle />
+            </View>
+          </View>
+        </View>
 
         {/* Sidebar Footer */}
-        {/* <View className="p-4 border-t border-white/10 items-center">
-          <Text className="text-xs text-text/50">Version 1.0.0</Text>
-        </View> */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => handleLogout()}
+          className="p-4 border-t gap-2 border-white/10 flex flex-row items-center"
+        >
+          <Text className="text-text font-medium">Log Out</Text>
+          <MaterialCommunityIcons
+            name="logout"
+            size={16}
+            color={colors.dark.accent}
+          />
+        </TouchableOpacity>
       </Animated.View>
     </View>
   );

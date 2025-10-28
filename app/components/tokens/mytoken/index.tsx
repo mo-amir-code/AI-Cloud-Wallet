@@ -39,12 +39,15 @@ const index = ({ tokenInfo }: { tokenInfo: MyTokenDataType }) => {
           <Text className="text-text font-medium">
             {tokenInfo.pricePerToken == -1
               ? "-"
-              : "$" + tokenInfo.pricePerToken.toFixed(8)}
+              : "$" + tokenInfo.pricePerToken.toFixed(4)}
           </Text>
           <Text className="text-accent/80 font-medium text-sm">
+            {tokenInfo?.symbol ??
+              "Unknown" + " " + parseFloat(tokenInfo.amount.toFixed(4))}{" "}
+            -{" "}
             {tokenInfo.pricePerToken == -1
               ? "-"
-              : (tokenInfo.pricePerToken * tokenInfo.amount).toFixed(8)}
+              : "$" + (tokenInfo.pricePerToken * tokenInfo.amount).toFixed(2)}
           </Text>
         </View>
       </View>
