@@ -1,0 +1,6 @@
+export { default as LadingPage } from "./Lading"
+export { default as HomePage } from "./Home"
+export { default as ContactsPage } from "./Contacts"
+export { default as ProfilePage } from "./Profile"
+export { default as SendPage } from "./Send"
+export { default as NotFoundPage } from "./404"
