@@ -1,6 +1,44 @@
 import React from "react";
+import { httpAxios, ROUTES } from "../utils/axios";
 
 const Landing: React.FC = () => {
+  const handleLogin = async () => {
+    const response = await httpAxios.post(ROUTES.AUTH.GET_REDIRECT_URL, {
+      from: "browser",
+    });
+
+    const data = response.data;
+    const { redirect_url } = data.data;
+
+    authenticateWithGoogle(redirect_url);
+  };
+
+  const authenticateWithGoogle = (authUrl: string) => {
+    const popup = window.open(
+      authUrl,
+      "google_auth_popup",
+      "width=500,height=600,top=100,left=100"
+    );
+
+    if (!popup) {
+      console.error("Failed to open popup window");
+      return;
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.success) {
+        console.log("✅ Google Authentication Success:", event.data.user);
+      } else {
+        console.error("❌ Google Authentication Failed:", event.data.error);
+      }
+
+      popup.close();
+      window.removeEventListener("message", handleMessage);
+    };
+
+    window.addEventListener("message", handleMessage);
+  };
+
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden bg-[#0A0D0A] text-stone-300 font-['Space_Grotesk',sans-serif]">
       <div className="flex h-full grow flex-col">
@@ -88,7 +126,10 @@ const Landing: React.FC = () => {
               </div>
 
               <div className="flex flex-col items-center gap-4">
-                <button className="flex w-full max-w-xs cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#2bee2b] text-[#0A0D0A] gap-3 text-base font-bold leading-normal tracking-[0.015em] hover:opacity-90 transition-all duration-300 shadow-[0_0_30px_-10px_rgba(43,238,43,0.4),0_0_15px_-15px_rgba(43,238,43,0.2)]">
+                <button
+                  onClick={() => handleLogin()}
+                  className="flex w-full max-w-xs cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#2bee2b] text-[#0A0D0A] gap-3 text-base font-bold leading-normal tracking-[0.015em] hover:opacity-90 transition-all duration-300 shadow-[0_0_30px_-10px_rgba(43,238,43,0.4),0_0_15px_-15px_rgba(43,238,43,0.2)]"
+                >
                   <svg
                     fill="#0A0D0A"
                     height="24px"
