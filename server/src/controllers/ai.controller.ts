@@ -27,15 +27,11 @@ const processRequest = apiHandler(async (req, res, next) => {
     const drive = getDrive({ user, req });
     const driveFileData = await getFileById(drive, user.driveFileId);
 
-    await processUserRequest(driveFileData, query, res);
+    const response = await processUserRequest(driveFileData, query, res, userId);
 
-    console.log("Process end")
-
-    await new Promise((resolve) => setTimeout(() => {
-        resolve({})
-    }, 4000))
-
-    res.write(`event: close\ndata: ${JSON.stringify({ status: "completed" })}\n\n`);
+    if (response) {
+        res.write(`event: close\ndata: ${JSON.stringify({ status: "completed" })}\n\n`);
+    }
 
     res.end();
 });

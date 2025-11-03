@@ -8,7 +8,7 @@ const router = express.Router();
 router.get("/", getContacts)
 router.post("/", zodValidation(addContactsZodSchema), addNewContact)
 router.patch("/", zodValidation(updateContactZodSchema), updateContact)
-router.delete("/", zodValidation(deleteContactZodSchema), deleteContact)
+router.delete("/:contactId", zodValidation(deleteContactZodSchema), deleteContact)
 router.delete("/all", deleteAllContacts)
 
 export default router;

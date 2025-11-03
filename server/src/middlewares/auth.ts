@@ -21,6 +21,8 @@ const isUserAuthenticated = apiHandler(async (req, res, next) => {
 
   const data = JWTTokenVerifier<JWTTokenVerifierType>(authToken);
 
+  // console.log("Auth Middleware - Token Data:", data);
+
   if (!data) {
     return next(new ErrorHandlerClass("Authorization token is not valid", RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED))
   }
@@ -32,7 +34,7 @@ const isUserAuthenticated = apiHandler(async (req, res, next) => {
     return next(new ErrorHandlerClass("Something went wrong", RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED))
   }
 
-  if (data.isExpired && !req.headers["x-mobile"]) {
+  if (data.isExpired && req.headers["x-mobile"]) {
     return next(new ErrorHandlerClass("Unauthorized request", RESPONSE_MESSAGES.AUTH.CODES.UNAUTHORIZED))
   }
 

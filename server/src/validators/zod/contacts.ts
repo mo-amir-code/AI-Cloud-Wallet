@@ -21,10 +21,8 @@ const updateContactZodSchema = z.object({
 });
 
 const deleteContactZodSchema = z.object({
-  body: z.object({
-    contact: z.object({
-      id: z.uuidv4("enter valid contact id"),
-    })
+  params: z.object({
+    contactId: z.string().uuid("enter valid contact id")
   })
 });
 

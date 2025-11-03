@@ -179,12 +179,7 @@ const googleCallback = apiHandler(async (req, res, next) => {
           // Send success message back to parent window (no sensitive data)
           if (window.opener) {
             window.opener.postMessage({ 
-              success: true,
-              user: {
-                email: "${email}",
-                name: "${name}",
-                picture: "${picture}"
-              }
+              success: true
             }, "*");
           }
 

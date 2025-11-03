@@ -5,12 +5,20 @@ import { AIJSONResponseType, ChatType, CreateInstructionArgsType } from "../../t
 import { createInstruction, executeInstructions, getAllTokenAccounts, getSolBalance, getSolPrice } from "./utils.js";
 import { DriveFileType } from "../../types/services/drive/index.js";
 import { Response } from "express";
+import { getSettingsByUserId } from "../../utils/db/settings.services.db.js";
+import { getSolanaConnection } from "../../config/solana.js";
+import { NetworkMode } from "@prisma/client";
 
 
-const processUserRequest = async (driveFileData: DriveFileType, query: string, res: Response) => {
+const processUserRequest = async (driveFileData: DriveFileType, query: string, res: Response, userId: string) => {
     const sendUpdate = (msg: string) => {
         res.write(`data: ${msg}\n\n`);
     };
+
+    // Fetch user settings to determine network
+    const userSettings = await getSettingsByUserId(userId);
+    const networkMode = userSettings?.mode || NetworkMode.mainnet;
+    const connection = getSolanaConnection(networkMode);
 
     const chatHistory: ChatType[] = [
         {
@@ -30,16 +38,12 @@ const processUserRequest = async (driveFileData: DriveFileType, query: string, r
     while (true) {
         const response = await queryToAI(chatHistory, 0);
 
-        if (!response) {
-            sendUpdate("AI server is not responding...");
-            break;
-        }
-
         console.log(response, "\n\n\n")
 
         if (!response) {
             console.log("Stopped!");
-            break;
+            res.write(`event: error\ndata: AI server is not responding...\n\n`);
+            return false;
         }
 
 
@@ -57,24 +61,24 @@ const processUserRequest = async (driveFileData: DriveFileType, query: string, r
                 sendUpdate("fetching SOL price...");
             }
             else if (response.content === "getSolBalance") {
-                toolResponse = await getSolBalance(driveFileData.wallet.publicKey);
+                toolResponse = await getSolBalance(driveFileData.wallet.publicKey, connection);
 
                 sendUpdate("fetching SOL balance...");
 
             } else if (response.content === "getAllTokenAccounts") {
-                toolResponse = await getAllTokenAccounts(driveFileData.wallet.publicKey);
+                toolResponse = await getAllTokenAccounts(driveFileData.wallet.publicKey, connection);
 
                 sendUpdate("fetching token accounts...");
 
             } else if (response.content === "createInstruction") {
                 const args = response.args! as CreateInstructionArgsType
-                const ix = await createInstruction({ ...args, fromSecretKey: driveFileData.wallet.secretKey });
+                const ix = await createInstruction({ ...args, fromSecretKey: driveFileData.wallet.secretKey, connection });
                 instructions.push(ix);
 
                 sendUpdate("creating instructions...");
 
             } else if (response.content === "executeInstructions") {
-                const signature = await executeInstructions(driveFileData.wallet.secretKey, instructions);
+                const signature = await executeInstructions(driveFileData.wallet.secretKey, instructions, connection);
                 toolResponse = { message: "This is the signature of the transaction: " + signature }
 
                 sendUpdate("executing instructions...");
@@ -90,8 +94,8 @@ const processUserRequest = async (driveFileData: DriveFileType, query: string, r
                 content: JSON.stringify(toolResponse)
             })
         } else if (response.step === "error") {
-            sendUpdate(response.content);
-            break;
+            res.write(`event: error\ndata: ${response.content}\n\n`);
+            return false;
         } else if (response.step === "output") {
             sendUpdate(response.content);
             break;
@@ -112,6 +116,7 @@ const processUserRequest = async (driveFileData: DriveFileType, query: string, r
     // const res = await queryToAI(chatHistory);
 
     // }
+    return true;
 };
 
 

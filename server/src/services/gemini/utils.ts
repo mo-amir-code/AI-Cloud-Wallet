@@ -1,20 +1,20 @@
-import { Keypair, PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction, TransactionInstruction } from "@solana/web3.js";
-import { solanaConnection, TOKEN_PROGRAM_IDS } from "../../config/solana.js";
+import { Connection, Keypair, PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction, TransactionInstruction } from "@solana/web3.js";
+import { TOKEN_PROGRAM_IDS } from "../../config/solana.js";
 import { createTransferInstruction, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import { CreateInstructionArgsType } from "../../types/services/gemini.js";
 import bs58 from "bs58"
 
 
-const getSolBalance = async (pubkey: string): Promise<number> => {
+const getSolBalance = async (pubkey: string, connection: Connection): Promise<number> => {
     const publicKey = new PublicKey(pubkey);
 
-    const lamports = await solanaConnection.getBalance(publicKey);
+    const lamports = await connection.getBalance(publicKey);
 
     return lamports;
 }
 
-const getSolAccount = async (pubkey: string) => {
-    const lamports = await getSolBalance(pubkey);
+const getSolAccount = async (pubkey: string, connection: Connection) => {
+    const lamports = await getSolBalance(pubkey, connection);
 
     // Convert to SOL
     const sol = lamports / 1_000_000_000;
@@ -30,14 +30,14 @@ const getSolAccount = async (pubkey: string) => {
     };
 }
 
-const getAllTokenAccounts = async (pubkey: string) => {
+const getAllTokenAccounts = async (pubkey: string, connection: Connection) => {
     const allAccounts: any[] = [];
     const validPubKey = new PublicKey(pubkey);
 
     for (const programId of TOKEN_PROGRAM_IDS) {
         const validProgramId = new PublicKey(programId);
 
-        const { value } = await solanaConnection.getParsedTokenAccountsByOwner(validPubKey, {
+        const { value } = await connection.getParsedTokenAccountsByOwner(validPubKey, {
             programId: validProgramId,
         });
 
@@ -58,7 +58,7 @@ const getAllTokenAccounts = async (pubkey: string) => {
         allAccounts.push(...accounts);
     }
 
-    const solInfo = await getSolAccount(pubkey);
+    const solInfo = await getSolAccount(pubkey, connection);
     allAccounts.push(solInfo)
 
 
@@ -66,7 +66,7 @@ const getAllTokenAccounts = async (pubkey: string) => {
 }
 
 
-const createInstruction = async ({ fromSecretKey, toAddress, amount, decimals, mintAddress, tokenProgramId }: CreateInstructionArgsType): Promise<TransactionInstruction> => {
+const createInstruction = async ({ fromSecretKey, toAddress, amount, decimals, mintAddress, tokenProgramId, connection }: CreateInstructionArgsType & { connection: Connection }): Promise<TransactionInstruction> => {
     const decodedSecretKey = bs58.decode(fromSecretKey);
     const fromWallet = Keypair.fromSecretKey(Uint8Array.from(decodedSecretKey));
     const toPublicKey = new PublicKey(toAddress);
@@ -75,8 +75,8 @@ const createInstruction = async ({ fromSecretKey, toAddress, amount, decimals, m
 
     if (mintAddress && tokenProgramId) {
         let mintPublicKey = new PublicKey(mintAddress);
-        const fromTokenAccount = await getOrCreateAssociatedTokenAccount(solanaConnection, fromWallet, mintPublicKey, fromWallet.publicKey);
-        const toTokenAccount = await getOrCreateAssociatedTokenAccount(solanaConnection, fromWallet, mintPublicKey, toPublicKey);
+        const fromTokenAccount = await getOrCreateAssociatedTokenAccount(connection, fromWallet, mintPublicKey, fromWallet.publicKey);
+        const toTokenAccount = await getOrCreateAssociatedTokenAccount(connection, fromWallet, mintPublicKey, toPublicKey);
 
         instruction = createTransferInstruction(
             fromTokenAccount.address,
@@ -97,13 +97,13 @@ const createInstruction = async ({ fromSecretKey, toAddress, amount, decimals, m
     return instruction;
 }
 
-const executeInstructions = async (fromSecretKey: string, instructions: TransactionInstruction[]) => {
+const executeInstructions = async (fromSecretKey: string, instructions: TransactionInstruction[], connection: Connection) => {
     const decodedSecretKey = bs58.decode(fromSecretKey);
     const fromWallet = Keypair.fromSecretKey(Uint8Array.from(decodedSecretKey));
 
     const tx = new Transaction().add(...instructions);
 
-    const signature = await sendAndConfirmTransaction(solanaConnection, tx, [fromWallet]);
+    const signature = await sendAndConfirmTransaction(connection, tx, [fromWallet]);
     console.log("✅ Token transfer successful:", signature);
 
     return signature;

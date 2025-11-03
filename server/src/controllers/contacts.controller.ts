@@ -97,7 +97,7 @@ const updateContact = apiHandler(async (req, res, next) => {
 
 const deleteContact = apiHandler(async (req, res, next) => {
     const userId = req.user.id;
-    const contact = req.body.contact as { id: string };
+    const contact = req.params as { contactId: string };
 
     const user = await getUser({ id: userId });
 
@@ -105,7 +105,7 @@ const deleteContact = apiHandler(async (req, res, next) => {
         return new ErrorHandlerClass("Something went wrong!", RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST)
     }
 
-    if (!uuidvalidate(contact.id)) {
+    if (!uuidvalidate(contact.contactId)) {
         return new ErrorHandlerClass("enter valid contact id!", RESPONSE_MESSAGES.AUTH.CODES.BAD_REQUEST)
     }
 
@@ -113,13 +113,13 @@ const deleteContact = apiHandler(async (req, res, next) => {
 
     let fileData = await getFileById(drive, user.driveFileId);
 
-    fileData.contacts = fileData.contacts.filter((c) => c.id !== contact.id);
+    fileData.contacts = fileData.contacts.filter((c) => c.id !== contact.contactId);
 
     await updateJsonFile(drive, user.driveFileId, fileData);
 
     return ok({
         res,
-        message: "contact has been updated",
+        message: "contact has been deleted",
     })
 });
 

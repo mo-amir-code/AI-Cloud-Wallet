@@ -22,7 +22,7 @@ const customizedCors = (req: Request, callback: (err: Error | null, options?: Co
         // Restricted CORS for other routes
         corsOptions = {
             origin: WHITELISTED_ORIGINS.some((url) => url?.toString() === req.headers.origin?.toString()),
-            methods: ["GET", "POST", "PUT", "DELETE"],
+            methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
             allowedHeaders: ["Content-Type", "Authorization"],
             credentials: true, // allow cookies/auth headers
         };
