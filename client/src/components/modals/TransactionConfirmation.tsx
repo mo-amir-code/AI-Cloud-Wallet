@@ -4,24 +4,44 @@ interface ConfirmSendModalProps {
   visible: boolean;
   onConfirm: () => void;
   onCancel: () => void;
-  recipientAddress?: string;
-  recipientName?: string;
+  recipient?: string;
   amount?: string;
-  networkFee?: string;
-  total?: string;
+  asset?: string;
+  networkFee?: number;
+  totalDebit?: string;
+  isLoading?: boolean;
 }
 
 const ConfirmSendModal: React.FC<ConfirmSendModalProps> = ({
   visible,
   onConfirm,
   onCancel,
-  recipientAddress = "8fA7...dE7b",
-  recipientName = "example.sol",
-  amount = "1.50 SOL",
-  networkFee = "~0.000005 SOL",
-  total = "1.500005 SOL",
+  recipient = "",
+  amount = "0",
+  asset = "sol",
+  networkFee = 0.000005,
+  totalDebit = "0",
+  isLoading = false,
 }) => {
   if (!visible) return null;
+
+  const getAssetName = (assetCode: string) => {
+    const assets: { [key: string]: string } = {
+      sol: "Solana",
+      usdc: "USD Coin",
+      usdt: "Tether",
+    };
+    return assets[assetCode.toLowerCase()] || assetCode.toUpperCase();
+  };
+
+  const formatAddress = (address: string) => {
+    if (!address) return "N/A";
+    if (address.endsWith('.sol')) return address;
+    if (address.length > 20) {
+      return `${address.slice(0, 8)}...${address.slice(-8)}`;
+    }
+    return address;
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -42,28 +62,32 @@ const ConfirmSendModal: React.FC<ConfirmSendModalProps> = ({
           <div className="space-y-4 mb-8 bg-black/20 p-4 rounded-lg">
             <div className="flex justify-between items-start">
               <span className="text-gray-400 text-sm">To</span>
-              <div className="text-right">
-                <span className="text-white text-sm font-mono block">
-                  {recipientAddress}
+              <div className="text-right max-w-[65%]">
+                <span className="text-white text-sm font-mono block break-all">
+                  {formatAddress(recipient)}
                 </span>
-                <span className="text-xs text-gray-500">{recipientName}</span>
+                <span className="text-xs text-gray-500">{getAssetName(asset)}</span>
               </div>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-400 text-sm">Amount</span>
-              <span className="text-white text-lg font-bold">{amount}</span>
+              <span className="text-white text-lg font-bold">
+                {parseFloat(amount || "0").toFixed(6)} {asset.toUpperCase()}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-400 text-sm">Network Fee</span>
-              <span className="text-white text-sm font-mono">{networkFee}</span>
+              <span className="text-white text-sm font-mono">
+                ~{networkFee.toFixed(6)} {asset.toUpperCase()}
+              </span>
             </div>
           </div>
 
           <div className="border-t border-border-dark pt-4">
             <div className="flex justify-between items-center text-lg">
-              <span className="font-bold text-gray-300">Total</span>
+              <span className="font-bold text-gray-300">Total Debit</span>
               <span className="text-primary text-2xl font-extrabold">
-                {total}
+                {totalDebit} {asset.toUpperCase()}
               </span>
             </div>
           </div>
@@ -72,13 +96,22 @@ const ConfirmSendModal: React.FC<ConfirmSendModalProps> = ({
         <div className="bg-black/30 p-4 rounded-b-2xl flex flex-col gap-3">
           <button
             onClick={onConfirm}
-            className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-primary text-background-dark text-base font-bold leading-normal tracking-wide hover:opacity-90 transition-opacity"
+            disabled={isLoading}
+            className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-primary text-background-dark text-base font-bold leading-normal tracking-wide hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span className="truncate">Confirm &amp; Send</span>
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 border-3 border-background-dark/30 border-t-background-dark rounded-full animate-spin"></div>
+                <span className="truncate">Processing...</span>
+              </div>
+            ) : (
+              <span className="truncate">Confirm &amp; Send</span>
+            )}
           </button>
           <button
             onClick={onCancel}
-            className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-transparent text-gray-300 hover:bg-white/10 text-base font-medium leading-normal transition-colors"
+            disabled={isLoading}
+            className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-transparent text-gray-300 hover:bg-white/10 text-base font-medium leading-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span className="truncate">Cancel</span>
           </button>

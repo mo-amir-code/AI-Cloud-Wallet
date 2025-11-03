@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useUserStore } from "../../stores/useUserStore";
 
 interface ReceiveProps {
   visible: boolean;
@@ -6,16 +7,14 @@ interface ReceiveProps {
 }
 
 const Receive: React.FC<ReceiveProps> = ({ visible, setVisible }) => {
-  const [walletAddress] = useState(
-    "4N6HhjwXo1Fp6L9cQqU8xkqV9G2o1WwKpD1Bv1o9Ck3n"
-  );
   const [copied, setCopied] = useState(false);
+  const { userInfo, settings } = useUserStore();
   const qrCodeUrl =
     "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" +
-    walletAddress;
+    userInfo?.wallet?.publicKey;
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(walletAddress);
+    await navigator.clipboard.writeText(userInfo?.wallet?.publicKey || "");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -69,7 +68,7 @@ const Receive: React.FC<ReceiveProps> = ({ visible, setVisible }) => {
             </p>
             <div className="bg-background-dark border border-border rounded-xl sm:rounded-2xl p-2.5 sm:p-3 md:p-4">
               <code className="text-text-primary font-mono text-[9px] xs:text-[10px] sm:text-xs break-all leading-relaxed">
-                {walletAddress}
+                {userInfo?.wallet?.publicKey}
               </code>
             </div>
           </div>
@@ -95,21 +94,11 @@ const Receive: React.FC<ReceiveProps> = ({ visible, setVisible }) => {
               <div className="absolute inset-0 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full animate-ping"></div>
             </div>
             <span className="text-[10px] sm:text-xs font-medium text-primary">
-              Solana Mainnet
+              Solana {settings?.mode === "mainnet" ? "Mainnet" : "Devnet"}
             </span>
           </div>
         </div>
       </div>
-
-      {/* Google Material Symbols */}
-      <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-        rel="stylesheet"
-      />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet"
-      />
     </div>
   );
 };

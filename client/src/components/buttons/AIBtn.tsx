@@ -1,6 +1,6 @@
 import React from "react";
 import { LuSparkles } from "react-icons/lu";
-import { useAppStore } from "../../zustand/appStore";
+import { useAppStore } from "../../stores/appStore";
 
 const AIBtn: React.FC = () => {
   const { toggleAIModal } = useAppStore();

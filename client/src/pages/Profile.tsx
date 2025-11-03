@@ -1,197 +1,312 @@
 import React, { useState } from "react";
+import { useUserStore } from "../stores/useUserStore";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { httpAxios, ROUTES } from "../utils/axios";
+import Modal from "../components/Modal";
+import { queryKeys } from "../utils/query-keys";
+import { userApi } from "../utils/axios/queries";
+import type { UserInfoType } from "../types/zustand/user.types";
 
 const Profile: React.FC = () => {
-  const [name, setName] = useState("Satoshi Nakamoto");
-  const [email, setEmail] = useState("satoshi.n@email.com");
+  const { userInfo, settings, updateNetworkMode, setUserInfo } = useUserStore();
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  // const wallets = [
-  //   { id: 1, name: "Main Savings", address: "So11...1111", icon: "savings" },
-  //   {
-  //     id: 2,
-  //     name: "Trading Fund",
-  //     address: "Trad...2222",
-  //     icon: "candlestick_chart",
-  //   },
-  //   { id: 3, name: "dApp Connector", address: "Dapp...3333", icon: "hub" },
-  // ];
+  const { mutate: updateNetwork, isPending } = useMutation({
+    mutationFn: async (mode: "mainnet" | "devnet") => {
+      const res = await httpAxios.patch(ROUTES.SETTINGS.ROOT, { mode });
+      return res.data;
+    },
+    onSuccess: (_data, mode) => {
+      updateNetworkMode(mode);
+    },
+  });
+
+  const { refetch, isFetching, data, isError } = useQuery({
+    queryKey: queryKeys.user.secret,
+    queryFn: userApi.getPrivateKey,
+    enabled: false,
+  });
+
+  // Handle success/error after refetch
+  React.useEffect(() => {
+    if (data && !isFetching) {
+      const updatedUserInfo = {
+        ...userInfo,
+        wallet: {
+          ...userInfo?.wallet,
+          privateKey: data.data.key as string,
+        },
+      };
+      setUserInfo(updatedUserInfo as UserInfoType);
+      setShowPrivateKey(true);
+      setIsModalOpen(false);
+    }
+  }, [data, isFetching]);
+
+  React.useEffect(() => {
+    if (isError) {
+      setIsModalOpen(false);
+    }
+  }, [isError]);
+
+  const handleCopy = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleToShowPrivateKey = () => {
+    if (showPrivateKey) {
+      setShowPrivateKey(false);
+      return;
+    }
+
+    setIsModalOpen(true);
+  };
+
+  const handleToConfirmShowPrivateKey = async () => {
+    if (userInfo?.wallet.privateKey) {
+      setShowPrivateKey(true);
+      setIsModalOpen(false);
+      return;
+    }
+    await refetch();
+  };
 
   return (
-    <main className="flex-1 p-6 lg:p-10">
-      <div className="max-w-7xl mx-auto">
-        {/* Profile Header */}
-        <header className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-10">
-          <div className="relative">
-            <div
-              className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-24 lg:size-28"
-              style={{
-                backgroundImage:
-                  'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDf-HZs80b5UILcJW7jwi8ZmOnV-68tCA435tdyksbS46GNo4kYzg6YaUqaLdAqQ9H7Zoyj5d4m2AnYHPTYO43vlcthQcjaxSMWnDuvZEZxyGCs4bvXAz2js56UU8trUFLtIQ6eCksw0Yb4xetbMPRd8A_MMF1wNPPzNZ5YS6juj74NTnDuR-FKi9eRZjAiksQkFnt3y1ElXGC9khItWaraCgK8wChn-MGVZdp-5Ajo4-U1dApfbyKdVNLStVvKxzI5apRxYUIgPrFB")',
-              }}
-            ></div>
-            {/* <button className="absolute bottom-1 right-1 flex items-center justify-center size-8 bg-success-bg rounded-full text-text-primary ring-2 ring-background-dark hover:bg-primary hover:text-background-dark transition-colors">
-              <span className="material-symbols-outlined text-base">edit</span>
-            </button> */}
+    <main className="flex-1 p-4 sm:p-6 md:p-8 transition-all ease-in-out duration-200">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 sm:gap-8">
+        {/* Header */}
+        <header className="flex flex-col gap-1">
+          <h1 className="text-text-primary text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">
+            Profile
+          </h1>
+          <p className="text-text-secondary text-sm sm:text-base font-normal leading-normal">
+            Manage your account and wallet settings
+          </p>
+        </header>
+
+        {/* User Info Section */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Profile Card */}
+          <div className="flex flex-col gap-4 rounded-xl border border-border bg-card-dark p-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
+                {userInfo?.photoUrl ? (
+                  <img
+                    src={userInfo.photoUrl}
+                    alt={userInfo.name}
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="material-symbols-outlined text-primary text-3xl">
+                    account_circle
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col">
+                <h2 className="text-text-primary text-xl font-bold">
+                  {userInfo?.name || "User"}
+                </h2>
+                <p className="text-text-secondary text-sm">
+                  {userInfo?.email || "user@example.com"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <span className="text-text-secondary text-sm">User ID</span>
+                <span className="text-text-primary text-sm font-mono">
+                  {userInfo?.id || "N/A"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-text-secondary text-sm">Network</span>
+                <span className="text-text-primary text-sm font-semibold uppercase">
+                  {settings?.mode || "devnet"}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-col justify-center">
-            <h1 className="text-text-primary text-3xl lg:text-4xl font-bold leading-tight tracking-[-0.015em]">
-              {}
-            </h1>
-            <p className="text-text-secondary text-base font-normal leading-normal mt-1">
-              {email}
-            </p>
-            <div className="flex items-center gap-1.5 mt-2">
-              <span className="material-symbols-outlined text-primary text-lg leading-none">
-                verified
+
+          {/* Wallet Keys Card */}
+          <div className="flex flex-col gap-4 rounded-xl border border-border bg-card-dark p-6">
+            <h3 className="text-text-primary text-lg font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">
+                vpn_key
               </span>
-              <p className="text-primary text-sm font-medium leading-normal">
-                Verified Account
+              Wallet Keys
+            </h3>
+
+            {/* Public Key */}
+            <div className="flex flex-col gap-2">
+              <label className="text-text-secondary text-sm font-medium flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-base">
+                  key
+                </span>
+                Public Key
+              </label>
+              <div className="flex items-center gap-2 bg-background-dark border border-border rounded-lg px-3 py-2">
+                <div className="flex-1 font-mono text-xs text-text-primary overflow-x-auto scrollbar-thin whitespace-nowrap">
+                  {userInfo?.wallet.publicKey || "No public key available"}
+                </div>
+                <button
+                  onClick={() =>
+                    handleCopy(userInfo?.wallet.publicKey || "", "public")
+                  }
+                  className="p-2 hover:bg-hover-light rounded-lg transition-colors"
+                  title="Copy public key"
+                >
+                  <span
+                    className={`material-symbols-outlined text-lg ${
+                      copiedField === "public" ? "text-primary" : "text-text-muted"
+                    }`}
+                  >
+                    {copiedField === "public" ? "check" : "content_copy"}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Private Key */}
+            <div className="flex flex-col gap-2">
+              <label className="text-text-secondary text-sm font-medium flex items-center gap-2">
+                <span className="material-symbols-outlined text-red text-base">
+                  lock
+                </span>
+                Private Key
+                <span className="text-red text-xs">(Keep Secret!)</span>
+              </label>
+              <div className="flex items-center gap-2 bg-background-dark border border-red/30 rounded-lg px-3 py-2">
+                <div className="flex-1 font-mono text-xs text-text-primary overflow-x-auto scrollbar-thin whitespace-nowrap">
+                  {showPrivateKey ? (
+                    <span>
+                      {userInfo?.wallet.privateKey || "Private key not available"}
+                    </span>
+                  ) : (
+                    <span className="text-text-muted">
+                      ••••••••••••••••••••••••••••••••
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleToShowPrivateKey()}
+                  className="p-2 hover:bg-hover-light rounded-lg transition-colors"
+                  title={showPrivateKey ? "Hide" : "Show"}
+                >
+                  <span className="material-symbols-outlined text-text-muted text-lg">
+                    {showPrivateKey ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+                {showPrivateKey && userInfo?.wallet.privateKey && (
+                  <button
+                    onClick={() =>
+                      handleCopy(userInfo?.wallet.privateKey || "", "private")
+                    }
+                    className="p-2 hover:bg-hover-light rounded-lg transition-colors"
+                    title="Copy private key"
+                  >
+                    <span
+                      className={`material-symbols-outlined text-lg ${
+                        copiedField === "private" ? "text-primary" : "text-text-muted"
+                      }`}
+                    >
+                      {copiedField === "private" ? "check" : "content_copy"}
+                    </span>
+                  </button>
+                )}
+              </div>
+              <p className="text-red/80 text-xs flex items-start gap-1">
+                <span className="material-symbols-outlined text-sm">
+                  warning
+                </span>
+                Never share your private key with anyone!
               </p>
             </div>
           </div>
-        </header>
+        </section>
 
-        {/* Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
-          {/* Left Column */}
-          <div className="xl:col-span-1 flex flex-col gap-8">
-            {/* Account Settings */}
-            <div>
-              <h2 className="text-text-primary text-xl font-bold leading-tight tracking-[-0.015em] mb-4">
-                Account Settings
-              </h2>
-              <div className="flex flex-col gap-4">
-                <label className="text-sm text-text-secondary" htmlFor="name">
-                  Name
-                </label>
-                <input
-                  className="bg-card-dark border border-border rounded-lg px-4 py-2.5 text-text-primary placeholder-text-secondary outline-none transition-colors focus:border-primary focus:text-primary"
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-                <label className="text-sm text-text-secondary" htmlFor="email">
-                  Email Address
-                </label>
-                <input
-                  className="bg-card-dark border border-border rounded-lg px-4 py-2.5 text-text-primary placeholder-text-secondary outline-none transition-colors focus:border-primary focus:text-primary"
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <button className="flex min-w-[84px] items-center justify-center gap-2 overflow-hidden rounded-lg h-11 px-5 bg-primary text-background-dark text-sm font-bold leading-normal tracking-[0.015em] hover:opacity-90 transition-opacity mt-2">
-                  <span className="truncate">Save Changes</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Security */}
-            {/* <div>
-              <h2 className="text-text-primary text-xl font-bold leading-tight tracking-[-0.015em] mb-4">
-                Security
-              </h2>
-              <div className="flex flex-col gap-5">
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <p className="text-text-primary text-sm font-medium">
-                      Two-Factor Authentication
-                    </p>
-                    <p className="text-text-secondary text-xs">
-                      Protect your account with an extra layer of security.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                      twoFactorEnabled ? "bg-primary" : "bg-hover-light"
-                    } focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background-dark`}
-                    role="switch"
-                    type="button"
-                    aria-checked={twoFactorEnabled}
-                  >
-                    <span className="sr-only">Use setting</span>
-                    <span
-                      aria-hidden="true"
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background-dark shadow ring-0 transition duration-200 ease-in-out ${
-                        twoFactorEnabled ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    ></span>
-                  </button>
-                </div>
-
-                <button className="w-full flex items-center justify-center gap-2 overflow-hidden rounded-lg h-11 px-5 bg-card-dark border border-border text-text-muted hover:bg-hover-light hover:text-text-primary transition-colors">
-                  <span className="material-symbols-outlined text-base">
-                    password
-                  </span>
-                  <span className="truncate text-sm font-medium">
-                    Change Password
-                  </span>
-                </button>
-
-                <button className="w-full flex items-center justify-center gap-2 overflow-hidden rounded-lg h-11 px-5 bg-card-dark border border-border text-text-muted hover:bg-hover-light hover:text-text-primary transition-colors">
-                  <span className="material-symbols-outlined text-base">
-                    history
-                  </span>
-                  <span className="truncate text-sm font-medium">
-                    View Session History
-                  </span>
-                </button>
-              </div>
-            </div> */}
+        {/* Network Mode */}
+        <section className="rounded-xl border border-border bg-card-dark p-6">
+          <h3 className="text-text-primary text-lg font-bold flex items-center gap-2 mb-3">
+            <span className="material-symbols-outlined text-primary">
+              language
+            </span>
+            Network Mode
+          </h3>
+          <p className="text-text-secondary text-sm mb-4">
+            Current:{" "}
+            <span className="text-text-primary font-semibold uppercase">
+              {settings?.mode || "devnet"}
+            </span>
+          </p>
+          <div className="inline-flex rounded-lg overflow-hidden border border-border">
+            <button
+              disabled={isPending || settings?.mode === "mainnet"}
+              onClick={() => updateNetwork("mainnet")}
+              className={`px-4 py-2 text-sm font-semibold transition-colors ${
+                settings?.mode === "mainnet"
+                  ? "bg-primary text-background-dark"
+                  : "bg-hover-light text-text-primary hover:bg-white/10"
+              } ${isPending ? "opacity-70 cursor-not-allowed" : ""}`}
+            >
+              Mainnet
+            </button>
+            <button
+              disabled={isPending || settings?.mode === "devnet"}
+              onClick={() => updateNetwork("devnet")}
+              className={`px-4 py-2 text-sm font-semibold transition-colors border-l border-border ${
+                settings?.mode === "devnet"
+                  ? "bg-primary text-background-dark"
+                  : "bg-hover-light text-text-primary hover:bg-white/10"
+              } ${isPending ? "opacity-70 cursor-not-allowed" : ""}`}
+            >
+              Devnet
+            </button>
           </div>
+          <p className="text-text-muted text-xs mt-2">
+            Switch between Solana networks. Changes are saved to your settings.
+          </p>
+        </section>
 
-          {/* Right Column - Wallets */}
-          {/* <div className="xl:col-span-2 flex flex-col gap-6">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-              <h2 className="text-text-primary text-[22px] font-bold leading-tight tracking-[-0.015em]">
-                My Wallets
-              </h2>
-              <button className="flex min-w-[84px] items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-primary text-background-dark text-sm font-bold leading-normal tracking-[0.015em] hover:opacity-90 transition-opacity">
-                <span className="material-symbols-outlined text-base">add</span>
-                <span className="truncate">Add New Wallet</span>
-              </button>
+        {/* Security Warning */}
+        <section className="rounded-xl border border-red/30 bg-red/5 p-4 sm:p-6">
+          <div className="flex gap-4">
+            <span className="material-symbols-outlined text-red text-2xl flex-shrink-0">
+              shield
+            </span>
+            <div className="flex flex-col gap-2">
+              <h3 className="text-text-primary text-lg font-bold">
+                Security Notice
+              </h3>
+              <ul className="text-text-secondary text-sm space-y-1 list-disc list-inside">
+                <li>Keep your private key secure and never share it</li>
+                <li>
+                  We will never ask you for your private key via email or
+                  support
+                </li>
+                <li>
+                  Store your keys in a secure location like a password manager
+                </li>
+                <li>Consider using a hardware wallet for large amounts</li>
+              </ul>
             </div>
-
-            <div className="flex flex-col gap-4">
-              {wallets.map((wallet) => (
-                <div
-                  key={wallet.id}
-                  className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-card-dark p-4 min-h-[72px] justify-between rounded-xl border border-border"
-                >
-                  <div className="flex items-center gap-4 flex-1 w-full sm:w-auto overflow-hidden">
-                    <div className="text-text-primary flex items-center justify-center rounded-lg bg-hover-light shrink-0 size-12">
-                      <span className="material-symbols-outlined">
-                        {wallet.icon}
-                      </span>
-                    </div>
-                    <div className="flex flex-col justify-center overflow-hidden">
-                      <p className="text-text-primary text-base font-medium leading-normal truncate">
-                        {wallet.name}
-                      </p>
-                      <p className="text-text-secondary text-sm font-normal leading-normal truncate">
-                        {wallet.address}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                    <button className="text-text-muted hover:text-text-primary flex size-9 items-center justify-center bg-hover-light hover:bg-border rounded-lg transition-colors">
-                      <span className="material-symbols-outlined text-xl">
-                        qr_code_2
-                      </span>
-                    </button>
-                    <button className="text-text-muted hover:text-text-primary flex size-9 items-center justify-center bg-hover-light hover:bg-border rounded-lg transition-colors">
-                      <span className="material-symbols-outlined text-xl">
-                        content_copy
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div> */}
-        </div>
+          </div>
+        </section>
       </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onOk={handleToConfirmShowPrivateKey}
+        onCancel={() => setIsModalOpen(false)}
+        title="Private Key Access"
+        message="Accessing your private key can be risky. Ensure you are in a secure environment."
+        status="warning"
+        isLoading={isFetching}
+      />
     </main>
   );
 };

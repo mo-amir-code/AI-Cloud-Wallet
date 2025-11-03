@@ -30,7 +30,7 @@ const ROUTES = {
     AI: {
         ROOT: "/ai"
     }
-}
+} as const;
 
 export {
     httpAxios, ROUTES

@@ -1,4 +1,4 @@
-export { default as LadingPage } from "./Lading"
+export { default as LadingPage } from "./Landing"
 export { default as HomePage } from "./Home"
 export { default as ContactsPage } from "./Contacts"
 export { default as ProfilePage } from "./Profile"

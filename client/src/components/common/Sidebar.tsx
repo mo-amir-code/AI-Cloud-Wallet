@@ -1,8 +1,13 @@
 import { NavLink } from "react-router-dom";
-import { useAppStore } from "../../zustand/appStore";
+import { useAppStore } from "../../stores/appStore";
+import { useUserStore } from "../../stores/useUserStore";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { httpAxios, ROUTES } from "../../utils/axios";
 
 const Sidebar = () => {
   const { toggleSidebar } = useAppStore();
+  const { userInfo, logout: kLogout } = useUserStore();
+  const queryClient = useQueryClient();
 
   const navItems = [
     { to: "/dashboard", label: "Home", icon: "home" },
@@ -11,21 +16,39 @@ const Sidebar = () => {
     { to: "/dashboard/profile", label: "Profile", icon: "person" },
   ];
 
+  const { mutate: logout, isPending: isLoggingOut } = useMutation({
+    mutationFn: async () => {
+      const res = await httpAxios.post(ROUTES.AUTH.LOGOUT);
+      return res.data;
+    },
+    onSuccess: () => {
+      // Reset client state to defaults
+      queryClient.clear();
+      localStorage.clear();
+      sessionStorage.clear();
+      kLogout();
+    },
+    onError: () => {
+      kLogout();
+    },
+  });
+
   return (
     <aside className="flex w-64 h-full flex-col justify-between border-r border-border bg-background-dark p-4 relative shadow-xl">
       {/* Header */}
       <div className="flex flex-col gap-10">
         <div className="flex items-center gap-3 px-2 pt-2">
-          <div
-            className="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10"
-            style={{
-              backgroundImage:
-                'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB7c4Ensamgz_7MXRlyfFhQGZ7p6duNi67vOS0XRC6BdkAhpFTHzYTAgnMdBrtVsxulstgim1tl-w53GGMqgyE7RS7nBjiABlLJYG5gBd9hJQ-ytLWIaDp8yXH2rjGtLL7tqf3h1dvMpeaVZ_785td-GBG--SyMpMaM74VXmoYoGLvKlCQ_BhOf7PjwfcWKqed8MmKDowi8JAcHlATQL7_nBewCUzMYPy2JgebUvdMD9hMVrfIVRtMbTVhX6B9U9XInC9XwhR31V7uB")',
-            }}
-          ></div>
+          <img
+            src={
+              userInfo?.photoUrl ||
+              "https://lh3.googleusercontent.com/aida-public/AB6AXuB7c4Ensamgz_7MXRlyfFhQGZ7p6duNi67vOS0XRC6BdkAhpFTHzYTAgnMdBrtVsxulstgim1tl-w53GGMqgyE7RS7nBjiABlLJYG5gBd9hJQ-ytLWIaDp8yXH2rjGtLL7tqf3h1dvMpeaVZ_785td-GBG--SyMpMaM74VXmoYoGLvKlCQ_BhOf7PjwfcWKqed8MmKDowi8JAcHlATQL7_nBewCUzMYPy2JgebUvdMD9hMVrfIVRtMbTVhX6B9U9XInC9XwhR31V7uB"
+            }
+            alt={userInfo?.name || "User avatar"}
+            className="rounded-lg size-10 object-cover"
+          />
           <div className="flex flex-col">
             <h1 className="text-foreground text-base font-bold leading-normal">
-              Solana Wallet
+              {userInfo ? userInfo.name : "Guest User"}
             </h1>
             <p className="text-foreground/60 text-sm font-normal leading-normal">
               Web Dashboard
@@ -73,9 +96,10 @@ const Sidebar = () => {
 
       {/* Logout */}
       <div className="flex flex-col gap-1">
-        <NavLink
-          to="/logout"
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-foreground/70 transition-colors hover:bg-red-500/10 hover:text-red-400"
+        <button
+          onClick={() => logout()}
+          disabled={isLoggingOut}
+          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-foreground/70 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-60"
         >
           <span
             className="material-symbols-outlined"
@@ -84,10 +108,12 @@ const Sidebar = () => {
                 "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
             }}
           >
-            logout
+            {isLoggingOut ? "hourglass_top" : "logout"}
           </span>
-          <p className="text-sm font-medium leading-normal">Logout</p>
-        </NavLink>
+          <p className="text-sm font-medium leading-normal">
+            {isLoggingOut ? "Logging out..." : "Logout"}
+          </p>
+        </button>
       </div>
 
       {/* Close Icon */}
