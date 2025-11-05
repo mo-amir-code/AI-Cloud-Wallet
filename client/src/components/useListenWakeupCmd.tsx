@@ -1,7 +1,7 @@
 // WakeWordListener.tsx
 import { useEffect, useRef, useCallback } from "react";
-import * as speechCommands from "@tensorflow-models/speech-commands";
 import * as tf from "@tensorflow/tfjs";
+import * as speechCommands from "@tensorflow-models/speech-commands";
 import { useToastStore } from "../stores/useToastStore";
 import { useAppStore } from "../stores/appStore";
 

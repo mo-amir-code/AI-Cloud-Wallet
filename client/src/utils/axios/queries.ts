@@ -86,7 +86,7 @@ export const getWalletTokens = async (
                     logo:
                         asset.content?.links?.image ||
                         asset.content?.files?.[0]?.uri ||
-                        "https://via.placeholder.com/40",
+                        "https://picsum.photos/200/300",
                     balance: formattedBalance,
                     mint: asset.id,
                     decimals,

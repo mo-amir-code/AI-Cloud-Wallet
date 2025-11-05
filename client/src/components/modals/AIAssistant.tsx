@@ -36,20 +36,20 @@ const AIAssistant = ({
       statusTimerRef.current = null;
     }
   };
-  const runStatusStepper = useCallback(() => {
-    clearStatusTimer();
-    setStatusStep(0);
-    const tick = () => {
-      setStatusStep((prev) => {
-        const next = prev + 1;
-        if (next < statusStepsRef.current.length) {
-          statusTimerRef.current = setTimeout(tick, 900);
-        }
-        return next;
-      });
-    };
-    statusTimerRef.current = setTimeout(tick, 900);
-  }, []);
+  // const runStatusStepper = useCallback(() => {
+  //   clearStatusTimer();
+  //   setStatusStep(0);
+  //   const tick = () => {
+  //     setStatusStep((prev) => {
+  //       const next = prev + 1;
+  //       if (next < statusStepsRef.current.length) {
+  //         statusTimerRef.current = setTimeout(tick, 900);
+  //       }
+  //       return next;
+  //     });
+  //   };
+  //   statusTimerRef.current = setTimeout(tick, 900);
+  // }, []);
   const { addToast } = useToastStore();
 
   // New: track if the user has spoken in this session
