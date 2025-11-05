@@ -36,75 +36,80 @@ const processUserRequest = async (driveFileData: DriveFileType, query: string, r
 
 
     while (true) {
-        const response = await queryToAI(chatHistory, 0);
+        try {
+            const response = await queryToAI(chatHistory, 0);
 
-        console.log(response, "\n\n\n")
+            console.log(response, "\n\n\n")
 
-        if (!response) {
-            console.log("Stopped!");
-            res.write(`event: error\ndata: AI server is not responding...\n\n`);
-            return false;
-        }
-
-
-        if (response.step === "action") {
-            let toolResponse: any;
-
-            if (response.content === "getContacts") {
-                toolResponse = driveFileData.contacts;
-
-                sendUpdate("fetching contacts...");
-
-            } else if (response.content === "getSolPrice") {
-                toolResponse = await getSolPrice();
-
-                sendUpdate("fetching SOL price...");
-            }
-            else if (response.content === "getSolBalance") {
-                toolResponse = await getSolBalance(driveFileData.wallet.publicKey, connection);
-
-                sendUpdate("fetching SOL balance...");
-
-            } else if (response.content === "getAllTokenAccounts") {
-                toolResponse = await getAllTokenAccounts(driveFileData.wallet.publicKey, connection);
-
-                sendUpdate("fetching token accounts...");
-
-            } else if (response.content === "createInstruction") {
-                const args = response.args! as CreateInstructionArgsType
-                const ix = await createInstruction({ ...args, fromSecretKey: driveFileData.wallet.secretKey, connection });
-                instructions.push(ix);
-
-                sendUpdate("creating instructions...");
-
-            } else if (response.content === "executeInstructions") {
-                const signature = await executeInstructions(driveFileData.wallet.secretKey, instructions, connection);
-                toolResponse = { message: "This is the signature of the transaction: " + signature }
-
-                sendUpdate("executing instructions...");
+            if (!response) {
+                console.log("Stopped!");
+                res.write(`event: error\ndata: AI server is not responding...\n\n`);
+                return false;
             }
 
-            // toolResponse = {
-            //     step: "observer",
-            //     content: JSON.stringify(toolResponse)
-            // }
+
+            if (response.step === "action") {
+                let toolResponse: any;
+
+                if (response.content === "getContacts") {
+                    sendUpdate("fetching contacts...");
+
+                    toolResponse = driveFileData.contacts;
+                } else if (response.content === "getSolPrice") {
+                    sendUpdate("fetching SOL price...");
+
+                    toolResponse = await getSolPrice();
+                }
+                else if (response.content === "getSolBalance") {
+                    sendUpdate("fetching SOL balance...");
+
+                    toolResponse = await getSolBalance(driveFileData.wallet.publicKey, connection);
+                } else if (response.content === "getAllTokenAccounts") {
+                    sendUpdate("fetching token accounts...");
+
+                    toolResponse = await getAllTokenAccounts(driveFileData.wallet.publicKey, connection);
+                } else if (response.content === "createInstruction") {
+                    sendUpdate("creating instructions...");
+
+                    const args = response.args! as CreateInstructionArgsType
+                    const ix = await createInstruction({ ...args, fromSecretKey: driveFileData.wallet.secretKey, connection });
+                    instructions.push(ix);
+
+
+                } else if (response.content === "executeInstructions") {
+                    sendUpdate("executing instructions...");
+
+                    const signature = await executeInstructions(driveFileData.wallet.secretKey, instructions, connection);
+                    toolResponse = { message: "This is the signature of the transaction: " + signature }
+
+                }
+
+                // toolResponse = {
+                //     step: "observer",
+                //     content: JSON.stringify(toolResponse)
+                // }
+
+                chatHistory.push({
+                    role: "assistant",
+                    content: JSON.stringify(toolResponse)
+                })
+            } else if (response.step === "error") {
+                res.write(`event: error\ndata: ${response.content}\n\n`);
+                return false;
+            } else if (response.step === "output") {
+                sendUpdate(response.content);
+                break;
+            }
 
             chatHistory.push({
                 role: "assistant",
-                content: JSON.stringify(toolResponse)
+                content: JSON.stringify(response)
             })
-        } else if (response.step === "error") {
-            res.write(`event: error\ndata: ${response.content}\n\n`);
+        } catch (error: any) {
+            console.error("Error in processing user request:", error);
+            res.write(`event: error\ndata: ${error.message}.\n\n`);
             return false;
-        } else if (response.step === "output") {
-            sendUpdate(response.content);
-            break;
         }
-
-        chatHistory.push({
-            role: "assistant",
-            content: JSON.stringify(response)
-        })
     }
 
     console.log("Exited from the loop..........")

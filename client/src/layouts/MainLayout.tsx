@@ -27,6 +27,7 @@ const MainLayout = () => {
     if (!isUserLoggedIn) {
       navigate("/", { replace: true });
     }
+    console.log("User login status changed: ", isUserLoggedIn);
   }, [isUserLoggedIn]);
 
   useEffect(() => {

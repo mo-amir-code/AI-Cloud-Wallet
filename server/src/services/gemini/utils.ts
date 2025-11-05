@@ -14,99 +14,122 @@ const getSolBalance = async (pubkey: string, connection: Connection): Promise<nu
 }
 
 const getSolAccount = async (pubkey: string, connection: Connection) => {
-    const lamports = await getSolBalance(pubkey, connection);
+    try {
+        const lamports = await getSolBalance(pubkey, connection);
 
-    // Convert to SOL
-    const sol = lamports / 1_000_000_000;
+        // Convert to SOL
+        const sol = lamports / 1_000_000_000;
 
-    return {
-        mint: "So11111111111111111111111111111111111111112", // Pseudo mint address for native SOL
-        isNative: true,
-        tokenAmount: {
-            amount: lamports.toString(),
-            uiAmount: sol,
-            decimals: 9,
-        },
-    };
+        return {
+            mint: "So11111111111111111111111111111111111111112", // Pseudo mint address for native SOL
+            isNative: true,
+            tokenAmount: {
+                amount: lamports.toString(),
+                uiAmount: sol,
+                decimals: 9,
+            },
+        };
+    } catch (error) {
+        console.error('Error fetching SOL account:', error);
+        throw new Error('Failed to fetch SOL account');
+    }
 }
 
 const getAllTokenAccounts = async (pubkey: string, connection: Connection) => {
-    const allAccounts: any[] = [];
-    const validPubKey = new PublicKey(pubkey);
+    try {
 
-    for (const programId of TOKEN_PROGRAM_IDS) {
-        const validProgramId = new PublicKey(programId);
+        const allAccounts: any[] = [];
+        const validPubKey = new PublicKey(pubkey);
 
-        const { value } = await connection.getParsedTokenAccountsByOwner(validPubKey, {
-            programId: validProgramId,
-        });
+        for (const programId of TOKEN_PROGRAM_IDS) {
+            const validProgramId = new PublicKey(programId);
 
-        const accounts = value.map((v) => {
-            const info = v.account.data.parsed.info;
-            return {
-                mint: info.mint,
-                owner: v.account.owner.toString(),
-                isNative: false,
-                tokenAmount: {
-                    amount: info.tokenAmount.amount,
-                    uiAmount: info.tokenAmount.uiAmount,
-                    decimals: info.tokenAmount.decimals
+            const { value } = await connection.getParsedTokenAccountsByOwner(validPubKey, {
+                programId: validProgramId,
+            });
+
+            const accounts = value.map((v) => {
+                const info = v.account.data.parsed.info;
+                return {
+                    mint: info.mint,
+                    owner: v.account.owner.toString(),
+                    isNative: false,
+                    tokenAmount: {
+                        amount: info.tokenAmount.amount,
+                        uiAmount: info.tokenAmount.uiAmount,
+                        decimals: info.tokenAmount.decimals
+                    }
                 }
-            }
-        });
+            });
 
-        allAccounts.push(...accounts);
+            allAccounts.push(...accounts);
+        }
+
+        const solInfo = await getSolAccount(pubkey, connection);
+        allAccounts.push(solInfo)
+
+
+        return allAccounts;
+    } catch (error) {
+        console.error('Error fetching token accounts:', error);
+        throw new Error('Failed to fetch token accounts');
     }
-
-    const solInfo = await getSolAccount(pubkey, connection);
-    allAccounts.push(solInfo)
-
-
-    return allAccounts;
 }
 
 
 const createInstruction = async ({ fromSecretKey, toAddress, amount, decimals, mintAddress, tokenProgramId, connection }: CreateInstructionArgsType & { connection: Connection }): Promise<TransactionInstruction> => {
-    const decodedSecretKey = bs58.decode(fromSecretKey);
-    const fromWallet = Keypair.fromSecretKey(Uint8Array.from(decodedSecretKey));
-    const toPublicKey = new PublicKey(toAddress);
+    try {
 
-    let instruction;
+        const decodedSecretKey = bs58.decode(fromSecretKey);
+        const fromWallet = Keypair.fromSecretKey(Uint8Array.from(decodedSecretKey));
+        const toPublicKey = new PublicKey(toAddress);
 
-    if (mintAddress && tokenProgramId) {
-        let mintPublicKey = new PublicKey(mintAddress);
-        const fromTokenAccount = await getOrCreateAssociatedTokenAccount(connection, fromWallet, mintPublicKey, fromWallet.publicKey);
-        const toTokenAccount = await getOrCreateAssociatedTokenAccount(connection, fromWallet, mintPublicKey, toPublicKey);
+        let instruction;
 
-        instruction = createTransferInstruction(
-            fromTokenAccount.address,
-            toTokenAccount.address,
-            fromWallet.publicKey,
-            BigInt(Math.round(amount * Math.pow(10, decimals))),
-            [],
-            new PublicKey(tokenProgramId)
-        );
-    } else {
-        instruction = SystemProgram.transfer({
-            fromPubkey: fromWallet.publicKey,
-            toPubkey: toPublicKey,
-            lamports: BigInt(Math.round(amount * Math.pow(10, decimals)))
-        })
+        if (mintAddress && tokenProgramId) {
+            let mintPublicKey = new PublicKey(mintAddress);
+            const fromTokenAccount = await getOrCreateAssociatedTokenAccount(connection, fromWallet, mintPublicKey, fromWallet.publicKey);
+            const toTokenAccount = await getOrCreateAssociatedTokenAccount(connection, fromWallet, mintPublicKey, toPublicKey);
+
+            instruction = createTransferInstruction(
+                fromTokenAccount.address,
+                toTokenAccount.address,
+                fromWallet.publicKey,
+                BigInt(Math.round(amount * Math.pow(10, decimals))),
+                [],
+                new PublicKey(tokenProgramId)
+            );
+        } else {
+            instruction = SystemProgram.transfer({
+                fromPubkey: fromWallet.publicKey,
+                toPubkey: toPublicKey,
+                lamports: BigInt(Math.round(amount * Math.pow(10, decimals)))
+            })
+        }
+
+        return instruction;
+    } catch (error) {
+        console.error('Error creating instruction:', error);
+        throw new Error('Failed to create instruction');
     }
-
-    return instruction;
 }
 
 const executeInstructions = async (fromSecretKey: string, instructions: TransactionInstruction[], connection: Connection) => {
-    const decodedSecretKey = bs58.decode(fromSecretKey);
-    const fromWallet = Keypair.fromSecretKey(Uint8Array.from(decodedSecretKey));
+    try {
 
-    const tx = new Transaction().add(...instructions);
+        const decodedSecretKey = bs58.decode(fromSecretKey);
+        const fromWallet = Keypair.fromSecretKey(Uint8Array.from(decodedSecretKey));
 
-    const signature = await sendAndConfirmTransaction(connection, tx, [fromWallet]);
-    console.log("✅ Token transfer successful:", signature);
+        const tx = new Transaction().add(...instructions);
 
-    return signature;
+        const signature = await sendAndConfirmTransaction(connection, tx, [fromWallet]);
+        console.log("✅ Token transfer successful:", signature);
+
+        return signature;
+    } catch (error) {
+        console.error('Error executing instructions:', error);
+        throw new Error('Failed to execute instructions');
+    }
 }
 
 const getSolPrice = async (): Promise<number> => {
@@ -118,7 +141,7 @@ const getSolPrice = async (): Promise<number> => {
         return data.solana.usd;
     } catch (error) {
         console.error('Error fetching SOL price:', error);
-        throw error;
+        throw new Error('Failed to fetch SOL price');
     }
 };
 

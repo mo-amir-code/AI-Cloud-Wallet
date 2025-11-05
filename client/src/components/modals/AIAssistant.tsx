@@ -134,7 +134,6 @@ const AIAssistant = ({
 
       const closeListener = (ev: MessageEvent) => {
         try {
-          // optional: inspect payload
           const payload = JSON.parse(ev.data);
           const msg =
             payload?.message ??
@@ -144,33 +143,73 @@ const AIAssistant = ({
             statusStepsRef.current.push(msg);
             setStatusStep(statusStepsRef.current.length);
           }
-          // console.log("close event:", payload);
         } catch {
-          // console.log("close (raw):", ev.data);
+          // ignore parse error
         }
-        // Clean up and close modal
+        // Clean up EventSource
+        if (eventSourceRef.current) {
+          try {
+            eventSourceRef.current.close();
+          } catch {}
+          eventSourceRef.current = null;
+        }
+        // Show success and close modal
         addToast("Transaction completed successfully.", "success");
-        closeAndCleanup();
+        // Use setTimeout to prevent race condition
+        setTimeout(() => {
+          closeAndCleanup();
+        }, 500);
       };
 
       const errorListener = () => {
+        // Clean up EventSource
+        if (eventSourceRef.current) {
+          try {
+            eventSourceRef.current.close();
+          } catch {}
+          eventSourceRef.current = null;
+        }
         addToast("Transaction failed.", "error");
-        closeAndCleanup();
+        // Use setTimeout to prevent race condition
+        setTimeout(() => {
+          closeAndCleanup();
+        }, 500);
       };
 
       es.addEventListener("message", messageListener);
-      // listen for server-sent "close" event: res.write(`event: close\ndata: {...}\n\n`)
       es.addEventListener("close", closeListener);
       es.addEventListener("error", errorListener);
 
       es.onerror = () => {
-        // On stream error, cleanup and close
-        closeAndCleanup();
+        // Only cleanup EventSource, don't close modal automatically
+        if (eventSourceRef.current) {
+          try {
+            eventSourceRef.current.close();
+          } catch {}
+          eventSourceRef.current = null;
+        }
+        addToast("Connection error occurred.", "error");
+        // Reset submission state but don't close modal
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
+        setPhase("listen");
+        phaseRef.current = "listen";
       };
-    } finally {
-      // isSubmitting handled in closeAndCleanup
+    } catch (error) {
+      // Handle any synchronous errors
+      if (eventSourceRef.current) {
+        try {
+          eventSourceRef.current.close();
+        } catch {}
+        eventSourceRef.current = null;
+      }
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+      setPhase("listen");
+      phaseRef.current = "listen";
+      addToast("Failed to send command.", "error");
     }
-  }, []);
+  }, [addToast]);
 
   // New: unified stop for recognition
   const stopRecognition = useCallback(() => {
@@ -200,6 +239,7 @@ const AIAssistant = ({
 
     // Switch to processing UI
     setPhase("process");
+    phaseRef.current = "process";
     statusStepsRef.current = [DEFAULT_STATUS];
     setStatusStep(0);
 
@@ -221,7 +261,7 @@ const AIAssistant = ({
       const rec = new SpeechRecognitionCtor();
       rec.lang = "en-US";
       rec.continuous = true;
-      rec.interimResults = true; // changed: enable interim results to show live text
+      rec.interimResults = true;
 
       rec.onresult = (event: any) => {
         // Stop processing if submitting or not in listen phase
@@ -299,6 +339,12 @@ const AIAssistant = ({
     const rec = recognitionRef.current;
 
     if (visible) {
+      // Reset phase when modal opens
+      setPhase("listen");
+      phaseRef.current = "listen";
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+      
       // Turn on
       shouldRunRef.current = true;
       // Only start if not already submitting and in listen phase
@@ -381,6 +427,7 @@ const AIAssistant = ({
 
     // Reset UI/session state
     setIsSubmitting(false);
+    isSubmittingRef.current = false;
     setFinalTranscript("");
     setInterimTranscript("");
     finalRef.current = "";
@@ -389,6 +436,7 @@ const AIAssistant = ({
     statusStepsRef.current = [DEFAULT_STATUS];
     setStatusStep(0);
     setPhase("listen");
+    phaseRef.current = "listen";
 
     // Close modal
     onClose();

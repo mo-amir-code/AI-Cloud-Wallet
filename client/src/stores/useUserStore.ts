@@ -1,4 +1,4 @@
-import { createStore } from 'zustand/vanilla';
+import { create } from 'zustand';
 import type {
     UserStoreType,
     UserInfoType,
@@ -20,7 +20,7 @@ const initialState = {
 
 const ONE_MIN = 60 * 1000
 
-const userStore = createStore<UserStoreType>()(
+const userStore = create<UserStoreType>()(
     persist(
         (set) => ({
             ...initialState,
@@ -120,4 +120,4 @@ const userStore = createStore<UserStoreType>()(
 );
 
 
-export const useUserStore = () => userStore.getState();
+export const useUserStore = () => userStore();

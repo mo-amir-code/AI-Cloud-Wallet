@@ -29,9 +29,7 @@ const processRequest = apiHandler(async (req, res, next) => {
 
     const response = await processUserRequest(driveFileData, query, res, userId);
 
-    if (response) {
-        res.write(`event: close\ndata: ${JSON.stringify({ status: "completed" })}\n\n`);
-    }
+    res.write(`event: close\ndata: ${JSON.stringify({ status: response ? "completed" : "error" })}\n\n`);
 
     res.end();
 });
