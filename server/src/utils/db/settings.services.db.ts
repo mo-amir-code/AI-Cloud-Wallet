@@ -1,5 +1,4 @@
 import { prisma } from "../../app.js";
-import { Settings, NetworkMode } from "@prisma/client";
 import { SettingsSchemaType } from "../../types/db/schema/index.js";
 
 // Create Settings
@@ -21,7 +20,7 @@ const getSettingsByUserId = async (userId: string): Promise<SettingsSchemaType |
 };
 
 // Update Settings by User ID
-const updateSettings = async (userId: string, data: Partial<Omit<Settings, "userId" | "id">>): Promise<Settings> => {
+const updateSettings = async (userId: string, data: Partial<Omit<SettingsSchemaType, "userId" | "id">>): Promise<SettingsSchemaType> => {
     const res = await prisma.settings.update({
         where: { userId },
         data,

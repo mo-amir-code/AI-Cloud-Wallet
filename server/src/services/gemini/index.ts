@@ -7,7 +7,6 @@ import { DriveFileType } from "../../types/services/drive/index.js";
 import { Response } from "express";
 import { getSettingsByUserId } from "../../utils/db/settings.services.db.js";
 import { getSolanaConnection } from "../../config/solana.js";
-import { NetworkMode } from "@prisma/client";
 
 
 const processUserRequest = async (driveFileData: DriveFileType, query: string, res: Response, userId: string) => {
@@ -17,7 +16,7 @@ const processUserRequest = async (driveFileData: DriveFileType, query: string, r
 
     // Fetch user settings to determine network
     const userSettings = await getSettingsByUserId(userId);
-    const networkMode = userSettings?.mode || NetworkMode.mainnet;
+    const networkMode = userSettings?.mode || "mainnet";
     const connection = getSolanaConnection(networkMode);
 
     const chatHistory: ChatType[] = [

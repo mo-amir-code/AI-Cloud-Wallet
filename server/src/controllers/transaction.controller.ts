@@ -6,7 +6,6 @@ import { createInstruction, executeInstructions } from "../services/gemini/utils
 import { getUser } from "../utils/db/user.services.db.js";
 import { getSettingsByUserId } from "../utils/db/settings.services.db.js";
 import { getSolanaConnection } from "../config/solana.js";
-import { NetworkMode } from "@prisma/client";
 
 
 const makeTransaction = apiHandler(async (req, res, next) => {
@@ -20,7 +19,7 @@ const makeTransaction = apiHandler(async (req, res, next) => {
 
     // Fetch user settings to determine network
     const userSettings = await getSettingsByUserId(userId);
-    const networkMode = userSettings?.mode || NetworkMode.mainnet;
+    const networkMode = userSettings?.mode || "mainnet";
     const connection = getSolanaConnection(networkMode);
 
     const { toAddress, tokenMint, amount, tokenProgramId, decimals } = req.body;
