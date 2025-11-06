@@ -43,7 +43,7 @@ const authenticateWithGoogle = apiHandler(async (req, res, next) => {
 export const COOKIE_OPTIONS = {
   httpOnly: true,        // Prevents XSS attacks
   secure: ENV_VARS.ENV !== 'development', // HTTPS only in production
-  sameSite: 'lax' as const,      // CSRF protection
+  sameSite: 'none' as const,      // CSRF protection
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   path: '/'
 };
@@ -371,7 +371,7 @@ const checkIsUserAuthenticated = apiHandler(async (req, res, next) => {
 
   const token = req.cookies.auth_token || req.headers.authorization?.split(" ")[1];
 
-  // console.log("COOKIES: ", req.cookies)
+  console.log("COOKIES: ", req.cookies)
   // console.log("Token:  ", token)
   // console.log("Headers: ", req.headers)
 
