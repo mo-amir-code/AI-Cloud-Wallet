@@ -7,6 +7,7 @@ import morgan from "morgan";
 import { PrismaClient } from "@prisma/client";
 import { customizedCors } from "./config/cors.js";
 import cors from "cors"
+import { ENV_VARS } from "./config/constants.js";
 
 const app = express();
 
@@ -15,6 +16,11 @@ export const prisma = new PrismaClient();
 // To keep server live on the onrender server
 app.get("/ping", (_req, res) => {
   res.json("pong");
+});
+
+// To redirect user on client url
+app.get("/client", (_req, res) => {
+  res.redirect(ENV_VARS.CLIENT_ORIGIN!);
 });
 
 // Trust proxy for ngrok
