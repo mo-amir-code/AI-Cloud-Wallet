@@ -55,7 +55,7 @@ const CURRENT_DATE_IN_JWT_FORM = Math.floor(Date.now() / 1000);
 const CLEAR_COOKIE = {
   httpOnly: true,
   secure: ENVIRONMENT !== 'development',
-  sameSite: 'lax',
+  sameSite: 'none' as const,
   path: '/'
 }
 
